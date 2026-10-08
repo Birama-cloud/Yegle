@@ -1,0 +1,11 @@
+streamlit>=1.50
+google-genai>=1.0
+python-dotenv
+pyyaml
+httpx
+fastapi
+uvicorn
+python-multipart
+gTTS
+openai
+pytest

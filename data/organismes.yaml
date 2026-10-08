@@ -1,0 +1,96 @@
+# ============================================================================
+#  BASE DE CONNAISSANCES INSTITUTIONNELLE
+#  Source de vérité du moteur d'orientation. Modifiable sans toucher au code
+#  ni au modèle d'IA. Après modification : python -m scripts.check_setup
+#
+#  ATTENTION : les compétences ci-dessous reprennent les exemples du cahier
+#  des charges. Elles ne sont PAS encore vérifiées (last_verified_at: null).
+#  Tant qu'une fiche n'a pas de date de vérification, aucun signalement ne
+#  lui est envoyé automatiquement : il passe en vérification humaine.
+#  Pour valider une fiche : contrôler la compétence et la zone sur une source
+#  officielle, renseigner source_url, puis last_verified_at: "AAAA-MM-JJ".
+#
+#  territorial_coverage : national | region:<id> | departement:<id> | zone:<id>
+#  transmission_mode    : internal_queue | webhook (exige api_endpoint_if_available en https)
+# ============================================================================
+
+- organization_id: ORG_SENEAU
+  organization_name: "SEN'EAU"
+  organization_type: operateur_de_service_public
+  domains: [eau]
+  subcategories: []                 # vide = toutes les sous-catégories du domaine
+  territorial_coverage: ["region:dakar"]
+  responsible_services:
+    - {name: "Service compétent", subcategories: []}
+  contact_channels: []              # à compléter depuis la source officielle
+  api_endpoint_if_available: null
+  transmission_mode: internal_queue
+  routing_rules:
+    - {rule_id: R_EAU_01, category: eau, confidence: 0.90}
+  escalation_rules:
+    - {when_urgency: [critical], action: notify_admin}
+  active_status: true
+  last_verified_at: null
+  source_url: null
+
+- organization_id: ORG_ONAS
+  organization_name: "ONAS"
+  organization_type: etablissement_public
+  domains: [assainissement]
+  subcategories: []
+  territorial_coverage: ["region:dakar"]
+  responsible_services:
+    - {name: "Service compétent", subcategories: []}
+  contact_channels: []
+  api_endpoint_if_available: null
+  transmission_mode: internal_queue
+  routing_rules:
+    - {rule_id: R_ASS_01, category: assainissement, confidence: 0.90}
+  escalation_rules:
+    - {when_urgency: [critical], action: notify_admin}
+  active_status: true
+  last_verified_at: null
+  source_url: null
+
+- organization_id: ORG_SENELEC
+  organization_name: "SENELEC"
+  organization_type: operateur_de_service_public
+  domains: [electricite]
+  subcategories: []
+  territorial_coverage: ["region:dakar"]
+  responsible_services:
+    - {name: "Service compétent", subcategories: []}
+  contact_channels: []
+  api_endpoint_if_available: null
+  transmission_mode: internal_queue
+  routing_rules:
+    - {rule_id: R_ELEC_01, category: electricite, confidence: 0.90}
+  escalation_rules:
+    - {when_urgency: [critical], action: notify_admin}
+  active_status: true
+  last_verified_at: null
+  source_url: null
+
+# Une seule fiche pour toutes les mairies : le nom est complété avec la commune
+# du signalement. Sans commune identifiée, le signalement part en vérification.
+- organization_id: ORG_MAIRIE
+  organization_name: "Mairie de {commune}"
+  organization_type: collectivite_territoriale
+  per_commune: true
+  domains: [voirie, eclairage_public, proprete, infrastructure]
+  subcategories: []
+  territorial_coverage: ["region:dakar"]
+  responsible_services:
+    - {name: "Services techniques", subcategories: []}
+  contact_channels: []
+  api_endpoint_if_available: null
+  transmission_mode: internal_queue
+  routing_rules:
+    - {rule_id: R_VOIRIE_01, category: voirie, confidence: 0.80}
+    - {rule_id: R_ECL_01, category: eclairage_public, confidence: 0.80}
+    - {rule_id: R_PROP_01, category: proprete, confidence: 0.80}
+    - {rule_id: R_INFRA_01, category: infrastructure, confidence: 0.70}
+  escalation_rules: []
+  active_status: true
+  last_verified_at: null
+  source_url: null

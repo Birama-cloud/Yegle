@@ -1,0 +1,34 @@
+# Catégories de problèmes reconnues. Modifiable sans toucher au code.
+# keywords : utilisés par le mode hors ligne (compréhension par mots-clés).
+- id: eau
+  label: {fr: "Eau", wo: "Ndox", en: "Water"}
+  subcategories: [fuite_d_eau, coupure_d_eau, qualite_de_l_eau, autre]
+  keywords: [eau, fuite, robinet, tuyau, canalisation, ndox, water, leak]
+- id: assainissement
+  label: {fr: "Assainissement", wo: "Assainissement", en: "Sanitation"}
+  subcategories: [egout_bouche, debordement_eaux_usees, inondation, autre]
+  keywords: [egout, eaux usees, fosse, inondation, inonde, inondee, caniveau, assainissement, sewage, flood]
+- id: electricite
+  label: {fr: "Électricité", wo: "Courant", en: "Electricity"}
+  subcategories: [panne_de_courant, cable_tombe, poteau_endommage, transformateur, autre]
+  keywords: [courant, electricite, cable, poteau electrique, transformateur, coupure de courant, electricity, power]
+- id: eclairage_public
+  label: {fr: "Éclairage public", wo: "Lampadaire", en: "Street lighting"}
+  subcategories: [lampadaire_en_panne, zone_non_eclairee, autre]
+  keywords: [lampadaire, lampadaires, eclairage, eclairage public, street light]
+- id: voirie
+  label: {fr: "Voirie", wo: "Yoon", en: "Roads"}
+  subcategories: [nid_de_poule, route_degradee, trottoir_endommage, signalisation, autre]
+  keywords: [route, trou, nid de poule, chaussee, goudron, trottoir, yoon, road, pothole]
+- id: proprete
+  label: {fr: "Propreté", wo: "Mbalit", en: "Waste"}
+  subcategories: [depot_sauvage, ordures_non_ramassees, autre]
+  keywords: [ordures, dechets, poubelle, poubelles, salete, depot sauvage, mbalit, garbage, waste]
+- id: infrastructure
+  label: {fr: "Infrastructure publique", wo: "Infrastructure", en: "Public infrastructure"}
+  subcategories: [batiment_public_endommage, equipement_public_endommage, autre]
+  keywords: [ecole, marche couvert, batiment public, mur effondre, pont, passerelle]
+- id: autre
+  label: {fr: "Autre", wo: "Leneen", en: "Other"}
+  subcategories: [autre]
+  keywords: []

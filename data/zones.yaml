@@ -1,0 +1,30 @@
+# Répertoire des zones reconnues (périmètre de la première version : région de Dakar).
+# type "commune"     : assez précis pour désigner une mairie.
+# type "departement" : trop large, l'assistant demande une précision.
+# lat / lon : centre APPROXIMATIF de la zone, pour l'affichage sur la carte uniquement.
+# Ces coordonnées n'ont pas été contrôlées (coords_verified: false) :
+# lancer  python -m scripts.verifier_zones  pour les comparer à OpenStreetMap.
+- {id: dakar-plateau, name: "Dakar-Plateau", type: commune, departement: dakar, region: dakar, aliases: [plateau, dakar plateau], lat: 14.670, lon: -17.437, coords_verified: false}
+- {id: medina, name: "Médina", type: commune, departement: dakar, region: dakar, aliases: [medina], lat: 14.683, lon: -17.450, coords_verified: false}
+- {id: gueule-tapee-fass-colobane, name: "Gueule Tapée-Fass-Colobane", type: commune, departement: dakar, region: dakar, aliases: [gueule tapee, fass, colobane], lat: 14.686, lon: -17.455, coords_verified: false}
+- {id: fann-point-e-amitie, name: "Fann-Point E-Amitié", type: commune, departement: dakar, region: dakar, aliases: [fann, point e, amitie], lat: 14.692, lon: -17.462, coords_verified: false}
+- {id: grand-dakar, name: "Grand Dakar", type: commune, departement: dakar, region: dakar, aliases: [grand dakar], lat: 14.706, lon: -17.453, coords_verified: false}
+- {id: biscuiterie, name: "Biscuiterie", type: commune, departement: dakar, region: dakar, aliases: [biscuiterie], lat: 14.703, lon: -17.448, coords_verified: false}
+- {id: hlm, name: "HLM", type: commune, departement: dakar, region: dakar, aliases: [hlm], lat: 14.711, lon: -17.445, coords_verified: false}
+- {id: hann-bel-air, name: "Hann Bel-Air", type: commune, departement: dakar, region: dakar, aliases: [hann, bel air, hann bel air], lat: 14.720, lon: -17.432, coords_verified: false}
+- {id: sicap-liberte, name: "Sicap-Liberté", type: commune, departement: dakar, region: dakar, aliases: [sicap liberte, sicap, liberte], lat: 14.716, lon: -17.462, coords_verified: false}
+- {id: dieuppeul-derkle, name: "Dieuppeul-Derklé", type: commune, departement: dakar, region: dakar, aliases: [dieuppeul, derkle], lat: 14.722, lon: -17.455, coords_verified: false}
+- {id: grand-yoff, name: "Grand-Yoff", type: commune, departement: dakar, region: dakar, aliases: [grand yoff], lat: 14.737, lon: -17.455, coords_verified: false}
+- {id: patte-d-oie, name: "Patte d'Oie", type: commune, departement: dakar, region: dakar, aliases: [patte d oie, patte doie], lat: 14.748, lon: -17.445, coords_verified: false}
+- {id: parcelles-assainies, name: "Parcelles Assainies", type: commune, departement: dakar, region: dakar, aliases: [parcelles assainies, parcelles], lat: 14.763, lon: -17.440, coords_verified: false}
+- {id: camberene, name: "Cambérène", type: commune, departement: dakar, region: dakar, aliases: [camberene], lat: 14.767, lon: -17.430, coords_verified: false}
+- {id: mermoz-sacre-coeur, name: "Mermoz-Sacré-Cœur", type: commune, departement: dakar, region: dakar, aliases: [mermoz, sacre coeur, sacre cœur], lat: 14.705, lon: -17.472, coords_verified: false}
+- {id: ouakam, name: "Ouakam", type: commune, departement: dakar, region: dakar, aliases: [ouakam], lat: 14.724, lon: -17.490, coords_verified: false}
+- {id: ngor, name: "Ngor", type: commune, departement: dakar, region: dakar, aliases: [ngor], lat: 14.750, lon: -17.515, coords_verified: false}
+- {id: yoff, name: "Yoff", type: commune, departement: dakar, region: dakar, aliases: [yoff], lat: 14.757, lon: -17.470, coords_verified: false}
+- {id: goree, name: "Gorée", type: commune, departement: dakar, region: dakar, aliases: [goree, ile de goree], lat: 14.667, lon: -17.398, coords_verified: false}
+# Niveaux trop larges pour désigner une mairie : l'assistant demandera la commune.
+- {id: dep-pikine, name: "Pikine", type: departement, departement: pikine, region: dakar, aliases: [pikine], lat: 14.755, lon: -17.390, coords_verified: false}
+- {id: dep-guediawaye, name: "Guédiawaye", type: departement, departement: guediawaye, region: dakar, aliases: [guediawaye], lat: 14.777, lon: -17.397, coords_verified: false}
+- {id: dep-rufisque, name: "Rufisque", type: departement, departement: rufisque, region: dakar, aliases: [rufisque], lat: 14.716, lon: -17.273, coords_verified: false}
+- {id: dep-keur-massar, name: "Keur Massar", type: departement, departement: keur-massar, region: dakar, aliases: [keur massar], lat: 14.783, lon: -17.313, coords_verified: false}
