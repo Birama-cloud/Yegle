@@ -1,5 +1,6 @@
 """Configuration centrale. Tout réglage modifiable passe par le fichier .env."""
 import os
+import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -54,5 +55,10 @@ MIN_CONFIDENCE_PROBLEM = float(os.getenv("MIN_CONFIDENCE_PROBLEM", "0.5"))
 # Accès à l'administration (tableau de bord et API). Vide = accès refusé.
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
+
+# Signature des brouillons renvoyés par l'API : le client ne peut pas les modifier entre
+# deux messages. Vide = secret tiré au démarrage (les brouillons en cours expirent au
+# redémarrage ; à fixer si l'API tourne sur plusieurs processus).
+DRAFT_SECRET = os.getenv("DRAFT_SECRET", "") or secrets.token_hex(32)
 
 LANGS = {"fr": "français", "wo": "wolof", "en": "anglais"}

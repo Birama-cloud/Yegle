@@ -1,4 +1,11 @@
-"""API REST.  Lancer :  uvicorn api.main:app --reload   (documentation interactive sur /docs)"""
+"""API REST.  Lancer :  uvicorn api.main:app --reload   (documentation interactive sur /docs)
+
+Le brouillon vit côté client entre deux messages. Chaque réponse l'accompagne d'une signature
+(draft_token) ; le client doit renvoyer les deux tels quels. Un brouillon modifié est refusé :
+le client ne peut donc pas s'attribuer une catégorie, une description ou une confiance.
+"""
+import hashlib
+import hmac
 import json
 import secrets
 from functools import lru_cache
@@ -55,6 +62,7 @@ class Draft(BaseModel):
 class AnalyzeIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     draft: Draft | None = None
+    draft_token: str = Field(default="", max_length=128)
     language: str | None = Field(default=None, pattern="^(fr|wo|en)$")
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
@@ -62,6 +70,7 @@ class AnalyzeIn(BaseModel):
 
 class SubmitIn(BaseModel):
     draft: Draft
+    draft_token: str = Field(default="", max_length=128)
 
 
 class StatusIn(BaseModel):
@@ -74,10 +83,26 @@ class RerouteIn(BaseModel):
     reason: str = Field(min_length=3, max_length=500)
 
 
+def _sign(draft: dict) -> str:
+    payload = json.dumps(draft, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hmac.new(settings.DRAFT_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+def _checked(draft: Draft | None, token: str) -> dict | None:
+    """Le brouillon tel que le serveur l'a renvoyé au message précédent, ou un refus."""
+    if draft is None:
+        return None
+    data = draft.model_dump()
+    if not secrets.compare_digest(token.encode(), _sign(data).encode()):
+        raise HTTPException(422, "Brouillon modifié ou expiré : recommencez le signalement")
+    return data
+
+
 def _turn(turn: Turn) -> dict:
     report = turn.report and get_assistant().storage.public_view(turn.report["reference"])
+    draft = Draft.model_validate(turn.draft).model_dump()
     return {"kind": turn.kind, "message": turn.message, "language": turn.language, "heard": turn.heard,
-            "draft": turn.draft, "routing": turn.decision, "report": report}
+            "draft": draft, "draft_token": _sign(draft), "routing": turn.decision, "report": report}
 
 
 # ---------------------------------------------------------------- public
@@ -96,13 +121,14 @@ def categories():
 @app.post("/api/analyze")
 def analyze(body: AnalyzeIn):
     """Un message écrit du citoyen : renvoie une question, ou un résumé à confirmer."""
-    draft = body.draft.model_dump() if body.draft else None
+    draft = _checked(body.draft, body.draft_token)
     return _turn(get_assistant().analyze(draft, text=body.text, lang=body.language,
                                          latitude=body.latitude, longitude=body.longitude))
 
 
 @app.post("/api/analyze/audio")
 async def analyze_audio(file: UploadFile = File(...), draft: str = Form(default=""),
+                        draft_token: str = Form(default="", max_length=128),
                         language: str | None = Form(default=None)):
     """Un message vocal du citoyen. L'audio n'est pas conservé."""
     if not (file.content_type or "").startswith("audio/"):
@@ -113,16 +139,17 @@ async def analyze_audio(file: UploadFile = File(...), draft: str = Form(default=
     if language not in (None, *settings.LANGS):
         raise HTTPException(422, "Langue inconnue")
     try:
-        parsed = Draft.model_validate(json.loads(draft)).model_dump() if draft else None
+        parsed = Draft.model_validate(json.loads(draft)) if draft else None
     except (json.JSONDecodeError, ValidationError) as e:
         raise HTTPException(422, "Brouillon illisible") from e
+    parsed = _checked(parsed, draft_token)
     return _turn(get_assistant().analyze(parsed, audio=data, mime_type=file.content_type, lang=language))
 
 
 @app.post("/api/reports", status_code=201)
 def create_report(body: SubmitIn):
     """Enregistre un signalement confirmé. L'organisme est recalculé par le serveur."""
-    turn = get_assistant().submit(body.draft.model_dump())
+    turn = get_assistant().submit(_checked(body.draft, body.draft_token))
     if turn.kind != "done":
         raise HTTPException(422, "Signalement incomplet : catégorie et description obligatoires")
     return _turn(turn)

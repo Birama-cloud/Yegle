@@ -105,6 +105,8 @@ Statuts : `RECEIVED → ROUTED → ASSIGNED → IN_PROGRESS → RESOLVED → CLO
 
 Les chemins `/api/admin` exigent l'en-tête `X-API-Key`.
 
+Le brouillon vit côté client entre deux messages. Chaque réponse de `/api/analyze` le renvoie avec une signature `draft_token` (HMAC-SHA256, secret `DRAFT_SECRET`). Le client renvoie `draft` et `draft_token` sans les modifier au message suivant et à `/api/reports` ; un brouillon modifié, incomplet ou sans signature est refusé (422). Le client ne peut donc pas s'attribuer une catégorie, une description, un lieu ou une confiance.
+
 ## Cas d'erreur
 
 | Cas | Comportement |
@@ -122,7 +124,7 @@ Les chemins `/api/admin` exigent l'en-tête `X-API-Key`.
 
 ## Sécurité
 
-Sorties du modèle contrôlées champ par champ. Orientation recalculée par le serveur. Destinations issues de la seule base de connaissances, webhooks en https uniquement. Administration fermée tant qu'aucun secret n'est configuré. Audio non conservé, aucune donnée d'identité collectée. Toutes les décisions et corrections sont tracées.
+Sorties du modèle contrôlées champ par champ. Brouillon de l'API validé et signé par le serveur. Orientation recalculée par le serveur. Destinations issues de la seule base de connaissances, webhooks en https uniquement. Administration fermée tant qu'aucun secret n'est configuré. Audio non conservé, aucune donnée d'identité collectée. Toutes les décisions et corrections sont tracées.
 
 ## Évolution vers la production
 

@@ -124,7 +124,8 @@ class Assistant:
         # 1. Le problème est-il compris ?
         if not draft["category"] or not draft["description"]:
             asked = draft["asked"].count("problem")
-            draft["asked"].append("problem")
+            if asked < MAX_PROBLEM_QUESTIONS:     # au-delà, la réponse ne change plus
+                draft["asked"].append("problem")
             key = "not_report" if asked == 0 else "ask_problem"
             if asked >= MAX_PROBLEM_QUESTIONS:
                 key = "not_report"

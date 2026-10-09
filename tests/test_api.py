@@ -20,10 +20,11 @@ def test_parcours_par_l_api(client):
 
     r1 = client.post("/api/analyze", json={"text": "Il y a une fuite d'eau dans ma rue"}).json()
     assert r1["kind"] == "clarify"
-    r2 = client.post("/api/analyze", json={"text": "À Grand-Yoff", "draft": r1["draft"]}).json()
+    r2 = client.post("/api/analyze", json={"text": "À Grand-Yoff", "draft": r1["draft"],
+                                           "draft_token": r1["draft_token"]}).json()
     assert r2["kind"] == "confirm" and r2["routing"]["organization"]["org_name"] == "SEN'EAU"
 
-    created = client.post("/api/reports", json={"draft": r2["draft"]})
+    created = client.post("/api/reports", json={"draft": r2["draft"], "draft_token": r2["draft_token"]})
     assert created.status_code == 201
     ref = created.json()["report"]["reference"]
     assert "transcript" not in created.json()["report"]            # vue publique uniquement
@@ -60,10 +61,37 @@ def test_brouillon_malforme_refuse_sans_erreur_serveur(client, bad):
 
 
 def test_brouillon_cles_inconnues_ignorees(client):
-    draft = {"category": "eau", "description": "Fuite d'eau", "location_text": "Ouakam",
-             "org_id": "ORG_PIRATE", "responsible_organization": {"id": "ORG_PIRATE"}}
-    ref = client.post("/api/reports", json={"draft": draft}).json()["report"]["reference"]
+    r = client.post("/api/analyze", json={"text": "Fuite d'eau à Ouakam"}).json()
+    draft = {**r["draft"], "org_id": "ORG_PIRATE", "responsible_organization": {"id": "ORG_PIRATE"}}
+    created = client.post("/api/reports", json={"draft": draft, "draft_token": r["draft_token"]})
+    ref = created.json()["report"]["reference"]
     assert client.get(f"/api/admin/reports/{ref}", headers=ADMIN).json()["report"]["org_id"] == "ORG_SENEAU"
+
+
+@pytest.mark.parametrize("change", [
+    {"confidence_problem": 1.0},            # se donner une confiance
+    {"category": "electricite"},            # changer de catégorie après l'analyse
+    {"description": "Autre chose"},
+    {"location_text": "Médina"},
+])
+def test_brouillon_modifie_par_le_client_refuse(client, change):
+    r = client.post("/api/analyze", json={"text": "Il y a une fuite d'eau dans ma rue"}).json()
+    forged = {**r["draft"], **change}
+    assert client.post("/api/reports", json={"draft": forged, "draft_token": r["draft_token"]}).status_code == 422
+    assert client.post("/api/analyze", json={"text": "À Ouakam", "draft": forged,
+                                             "draft_token": r["draft_token"]}).status_code == 422
+    audio = client.post("/api/analyze/audio", data={"draft": json.dumps(forged), "draft_token": r["draft_token"]},
+                        files={"file": ("a.wav", b"RIFF", "audio/wav")})
+    assert audio.status_code == 422
+    assert client.get("/api/admin/reports", headers=ADMIN).json() == []
+
+
+def test_brouillon_sans_signature_ou_d_un_autre_echange_refuse(client):
+    a = client.post("/api/analyze", json={"text": "Fuite d'eau à Ouakam"}).json()
+    b = client.post("/api/analyze", json={"text": "Lampadaire en panne à Ouakam"}).json()
+    assert client.post("/api/reports", json={"draft": a["draft"]}).status_code == 422
+    assert client.post("/api/reports", json={"draft": a["draft"], "draft_token": b["draft_token"]}).status_code == 422
+    assert client.post("/api/reports", json={"draft": a["draft"], "draft_token": a["draft_token"]}).status_code == 201
 
 
 def test_administration_protegee(client, monkeypatch):
@@ -74,8 +102,9 @@ def test_administration_protegee(client, monkeypatch):
 
 
 def test_administration(client):
-    draft = client.post("/api/analyze", json={"text": "Lampadaire en panne à Ouakam"}).json()["draft"]
-    ref = client.post("/api/reports", json={"draft": draft}).json()["report"]["reference"]
+    r = client.post("/api/analyze", json={"text": "Lampadaire en panne à Ouakam"}).json()
+    ref = client.post("/api/reports", json={"draft": r["draft"], "draft_token": r["draft_token"]}
+                      ).json()["report"]["reference"]
 
     assert len(client.get("/api/admin/reports", headers=ADMIN).json()) == 1
     assert client.get("/api/admin/reports?category=eau", headers=ADMIN).json() == []
