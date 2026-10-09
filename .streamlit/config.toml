@@ -1,9 +1,11 @@
+# Thème de base clair (espace services, riche en composants natifs).
+# Les pages citoyen passent en sombre par le CSS de ui/common.py.
 [theme]
 base = "light"
-primaryColor = "#1B2A6B"
-backgroundColor = "#F4F5FA"
-secondaryBackgroundColor = "#E8EBF5"
-textColor = "#141A33"
+primaryColor = "#1E5BD8"
+backgroundColor = "#F4F7FC"
+secondaryBackgroundColor = "#EEF3FB"
+textColor = "#0B1F4B"
 
 [client]
 toolbarMode = "minimal"

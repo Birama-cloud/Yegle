@@ -6,9 +6,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import streamlit as st  # noqa: E402
 
-from ui.common import badge, category_label, esc, get_assistant, setup, when  # noqa: E402
+from ui.common import PAGE_TRACK, badge, category_label, esc, get_assistant, setup, when  # noqa: E402
 
-setup("Suivi")
+setup("Suivi", theme="dark", width="800px", active=PAGE_TRACK)
 assistant = get_assistant()
 
 # Les étapes vues par le citoyen, et les statuts internes qui y correspondent.
@@ -19,7 +19,9 @@ STAGES = [
     ("Résolu", "Le problème est signalé comme réglé.", ("RESOLVED", "CLOSED")),
 ]
 
-st.markdown("<h1>Suivre un signalement</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='yg-page-title'>Suivre un signalement</h1>"
+            "<p class='yg-page-sub'>Saisissez la référence reçue à la fin de votre signalement.</p>",
+            unsafe_allow_html=True)
 reference = st.text_input("Votre référence", placeholder="YGL-261008-ABC234",
                           help="Elle vous a été donnée à la fin de votre signalement.").strip().upper()
 
@@ -50,6 +52,6 @@ if reference:
             f"<dt>Mis à jour le</dt><dd>{esc(when(view['updated_at']))}</dd></dl>"
             f"<div class='dest'><i class='yg-dot{'' if view['organization'] else ' warn'}'></i><div>"
             f"<span>Service destinataire</span><b>{esc(org)}</b></div></div>"
-            f"<ol class='yg-track' style='border-top:2px dashed var(--line)'>{items}</ol></section>",
+            f"<ol class='yg-track'>{items}</ol></section>",
             unsafe_allow_html=True)
         st.caption("Les heures sont indiquées en temps universel (UTC).")

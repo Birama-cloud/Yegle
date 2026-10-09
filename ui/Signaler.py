@@ -10,14 +10,15 @@ import streamlit as st  # noqa: E402
 from app import voice  # noqa: E402
 from app.messages import msg  # noqa: E402
 from ui.common import (PAGE_TRACK, URGENCY_LABELS, analyze_limiter, category_label, client_ip,  # noqa: E402
-                       esc, get_assistant, setup, steps)
+                       esc, get_assistant, icon, setup, steps)
 
-setup("Signaler")
-assistant = get_assistant()
 state = st.session_state
 for key, default in {"messages": [], "draft": None, "stage": "talk", "decision": None, "report": None,
                      "mic_key": 0, "last_audio": None, "lang": "fr", "speak": None, "notice": None}.items():
     state.setdefault(key, default)
+# Accueil large (micro et cartes), conversation resserrée pour la lecture.
+setup("Signaler", theme="dark", width="1180px" if not state.messages else "800px")
+assistant = get_assistant()
 
 LANG_OPTIONS = {"Auto": None, "Français": "fr", "Wolof": "wo", "English": "en"}
 # Préférences gardées hors des widgets : Streamlit oublie un widget dès qu'il n'est plus affiché.
@@ -63,14 +64,15 @@ def send() -> None:
 
 
 # ---------------------------------------------------------------- en-tête de page
-steps({"talk": 0, "confirm": 1, "done": 3}[state.stage])
-
 if not state.messages:
+    # À l'accueil, les cartes du bas présentent les trois étapes ; la frise apparaît avec la conversation.
     st.markdown(
-        "<div class='yg-hero'><h1>Un problème dans votre quartier ? Dites-le.</h1>"
-        "<p>Eau, électricité, route, éclairage, ordures. Parlez en wolof, en français ou en anglais : "
-        "nous trouvons le service qui doit s'en occuper.</p></div>", unsafe_allow_html=True)
+        "<div class='yg-hero'><span class='yg-pill'>Wolof, français et anglais</span>"
+        "<h1>Dites le problème.<span class='grad'>Yëgle prévient le bon service.</span></h1>"
+        "<p>Fuite d'eau, coupure de courant, route abîmée, ordures. Pas de formulaire à remplir : "
+        "parlez, on s'occupe du reste.</p></div>", unsafe_allow_html=True)
 else:
+    steps({"talk": 0, "confirm": 1, "done": 3}[state.stage])
     bubbles = "".join(
         f"<div class='yg-msg {m['role']}'><small>{'Vous' if m['role'] == 'user' else 'Yëgle'}</small>"
         f"{esc(m['content'])}</div>" for m in state.messages)
@@ -131,7 +133,7 @@ else:
         st.info("Mode hors ligne : écrivez votre message. Le micro s'active dès qu'une clé GEMINI_API_KEY "
                 "est renseignée dans le fichier .env.")
     else:
-        label = "Appuyez sur le micro et parlez" if not state.messages else "Appuyez pour répondre"
+        label = "Appuyez et parlez" if not state.messages else "Appuyez pour répondre"
         recorded = st.audio_input(label, key=f"mic_{state.mic_key}")
         if recorded is not None:
             data = recorded.getvalue()
@@ -140,18 +142,30 @@ else:
                 state.last_audio = digest
                 handle(audio=data, mime=recorded.type or "audio/wav")
                 st.rerun()
+    # À l'accueil, le champ reste dans la page pour qu'elle s'ouvre en haut. Une fois la conversation
+    # commencée, il se fixe en bas et l'écran suit le dernier message.
+    holder = st if state.messages else st.container(key="yg_compose")
     state["yg_lang"], state["yg_voice"] = state.pref_lang, state.pref_voice
     with st.container(horizontal=True, vertical_alignment="center", gap="medium", key="yg_prefs"):
         st.segmented_control("Langue", list(LANG_OPTIONS), key="yg_lang", label_visibility="collapsed",
                              width="content")
         st.toggle("Réponses à voix haute", key="yg_voice", width="content")
     state.pref_lang, state.pref_voice = state.yg_lang or "Auto", state.yg_voice
-    # À l'accueil, le champ reste dans la page pour qu'elle s'ouvre en haut. Une fois la conversation
-    # commencée, il se fixe en bas et l'écran suit le dernier message.
-    holder = st if state.messages else st.container()
-    if typed := holder.chat_input("Ou écrivez votre message"):
+    if typed := holder.chat_input("Ou écrivez votre message…"):
         handle(text=typed)
         st.rerun()
     if not state.messages:
-        st.markdown("<p class='yg-note'>Votre voix n'est pas conservée. Aucun nom ni numéro de téléphone "
-                    "n'est demandé.</p>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='yg-cards'>"
+            "<div class='yg-card example'><small>Exemple de signalement vocal</small>"
+            "<q>Ndox mi mongui ballë ci mbedd mi, fii ci Grand-Yoff</q>"
+            f"<div class='yg-tags'><span>{icon('eau')}Fuite d'eau</span><span>{icon('pin')}Grand-Yoff</span>"
+            f"{icon('arrow')}<em>SEN'EAU</em></div></div>"
+            f"<div class='yg-card'><i class='ic'>{icon('mic')}</i><div><b>Décrivez</b>"
+            "<span>Avec vos mots, dans votre langue.</span></div></div>"
+            f"<div class='yg-card'><i class='ic'>{icon('check')}</i><div><b>Vérifiez</b>"
+            "<span>Yëgle résume, vous confirmez.</span></div></div>"
+            f"<div class='yg-card'><i class='ic'>{icon('search')}</i><div><b>Suivez</b>"
+            "<span>Une référence pour voir l'avancement.</span></div></div></div>"
+            "<p class='yg-note'>Votre voix n'est pas conservée. Aucun nom ni numéro de téléphone "
+            "n'est demandé.</p>", unsafe_allow_html=True)
