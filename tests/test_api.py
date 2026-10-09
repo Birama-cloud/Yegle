@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import main
+from app.ratelimit import RateLimiter
 
 ADMIN = {"X-API-Key": "cle-de-test"}
 
@@ -11,7 +12,22 @@ ADMIN = {"X-API-Key": "cle-de-test"}
 @pytest.fixture
 def client(assistant, monkeypatch):
     monkeypatch.setattr(main, "get_assistant", lambda: assistant)
+    for limiter in main.LIMITERS.values():
+        limiter.reset()
     return TestClient(main.app)
+
+
+def test_limite_de_debit(client, monkeypatch):
+    monkeypatch.setitem(main.LIMITERS, "analyze", RateLimiter(2, 60))
+    monkeypatch.setitem(main.LIMITERS, "track", RateLimiter(1, 60))
+    assert client.post("/api/analyze", json={"text": "Fuite d'eau"}).status_code == 200
+    audio = client.post("/api/analyze/audio", files={"file": ("a.wav", b"RIFF", "audio/wav")})
+    assert audio.status_code == 200                  # vocal et écrit partagent le même compteur
+    refused = client.post("/api/analyze", json={"text": "Fuite d'eau"})
+    assert refused.status_code == 429 and 0 < int(refused.headers["Retry-After"]) <= 60
+    assert client.get("/api/reports/YGL-000000-XXXXXX").status_code == 404
+    assert client.get("/api/reports/YGL-000000-XXXXXX").status_code == 429
+    assert client.get("/health").status_code == 200  # routes non limitées
 
 
 def test_parcours_par_l_api(client):

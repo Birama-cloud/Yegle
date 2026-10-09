@@ -7,20 +7,39 @@ le client ne peut donc pas s'attribuer une catégorie, une description ou une co
 import hashlib
 import hmac
 import json
+import math
 import secrets
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.assistant import MAX_TRANSCRIPT, Assistant, Turn
+from app.ratelimit import RateLimiter
 from app.storage import STATUSES, StorageError
 from config import settings
 
 app = FastAPI(title=f"{settings.APP_NAME} API", version="0.1.0",
               description="Signalement citoyen vocal et orientation vers le service public compétent.")
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
+# Par adresse IP. Derrière un proxy, lancer uvicorn avec --proxy-headers --forwarded-allow-ips
+# pour que l'adresse vue soit celle du citoyen et non celle du proxy.
+LIMITERS = {
+    "analyze": RateLimiter(settings.RATE_ANALYZE_PER_MINUTE, 60),
+    "reports": RateLimiter(settings.RATE_REPORTS_PER_HOUR, 3600),
+    "track": RateLimiter(settings.RATE_TRACK_PER_MINUTE, 60),
+}
+
+
+def rate_limited(name: str):
+    def check(request: Request) -> None:
+        wait = LIMITERS[name].take(request.client.host if request.client else "inconnu")
+        if wait:
+            raise HTTPException(429, "Trop de demandes : réessayez dans un instant",
+                                headers={"Retry-After": str(math.ceil(wait))})
+    return Depends(check)
 
 
 @lru_cache(maxsize=1)
@@ -118,7 +137,7 @@ def categories():
             for c in get_assistant().knowledge.categories.values()]
 
 
-@app.post("/api/analyze")
+@app.post("/api/analyze", dependencies=[rate_limited("analyze")])
 def analyze(body: AnalyzeIn):
     """Un message écrit du citoyen : renvoie une question, ou un résumé à confirmer."""
     draft = _checked(body.draft, body.draft_token)
@@ -126,7 +145,7 @@ def analyze(body: AnalyzeIn):
                                          latitude=body.latitude, longitude=body.longitude))
 
 
-@app.post("/api/analyze/audio")
+@app.post("/api/analyze/audio", dependencies=[rate_limited("analyze")])
 async def analyze_audio(file: UploadFile = File(...), draft: str = Form(default=""),
                         draft_token: str = Form(default="", max_length=128),
                         language: str | None = Form(default=None)):
@@ -146,7 +165,7 @@ async def analyze_audio(file: UploadFile = File(...), draft: str = Form(default=
     return _turn(get_assistant().analyze(parsed, audio=data, mime_type=file.content_type, lang=language))
 
 
-@app.post("/api/reports", status_code=201)
+@app.post("/api/reports", status_code=201, dependencies=[rate_limited("reports")])
 def create_report(body: SubmitIn):
     """Enregistre un signalement confirmé. L'organisme est recalculé par le serveur."""
     turn = get_assistant().submit(_checked(body.draft, body.draft_token))
@@ -155,7 +174,7 @@ def create_report(body: SubmitIn):
     return _turn(turn)
 
 
-@app.get("/api/reports/{reference}")
+@app.get("/api/reports/{reference}", dependencies=[rate_limited("track")])
 def track(reference: str):
     """Suivi citoyen : statut, organisme destinataire, dates."""
     view = get_assistant().storage.public_view(reference)

@@ -1,5 +1,6 @@
 """Espace services : tous les signalements, leur orientation et leur suivi."""
 import json
+import math
 import secrets
 import sys
 from pathlib import Path
@@ -11,8 +12,8 @@ import streamlit as st  # noqa: E402
 
 from app.storage import TRANSITIONS, StorageError  # noqa: E402
 from config import settings  # noqa: E402
-from ui.common import (STATUS_LABELS, URGENCY_LABELS, URGENCY_TONE, badge, category_label, esc,  # noqa: E402
-                       get_assistant, setup, when, when_short)
+from ui.common import (STATUS_LABELS, URGENCY_LABELS, URGENCY_TONE, badge, category_label,  # noqa: E402
+                       client_ip, esc, get_assistant, login_limiter, setup, when, when_short)
 
 setup("Espace services", wide=True)
 assistant = get_assistant()
@@ -33,10 +34,16 @@ if not state.get("admin"):
             name = st.text_input("Votre nom", help="Il est inscrit à côté de chaque modification que vous faites.")
             password = st.text_input("Mot de passe", type="password")
             if st.form_submit_button("Se connecter", type="primary", width="stretch"):
-                if name.strip() and secrets.compare_digest(password.encode(), settings.DASHBOARD_PASSWORD.encode()):
+                limiter, ip = login_limiter(), client_ip()
+                if wait := limiter.check(ip):
+                    st.error(f"Trop d'essais. Réessayez dans {math.ceil(wait / 60)} min.")
+                elif name.strip() and secrets.compare_digest(password.encode(),
+                                                             settings.DASHBOARD_PASSWORD.encode()):
                     state.admin = name.strip()[:60]
                     st.rerun()
-                st.error("Nom manquant ou mot de passe incorrect.")
+                else:
+                    limiter.hit(ip)
+                    st.error("Nom manquant ou mot de passe incorrect.")
     st.stop()
 actor = f"admin:{state.admin}"
 

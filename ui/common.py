@@ -4,6 +4,7 @@ import html
 import streamlit as st
 
 from app.assistant import Assistant
+from app.ratelimit import RateLimiter
 from config import settings
 
 STATUS_LABELS = {
@@ -240,6 +241,26 @@ def when(iso: str) -> str:
 @st.cache_resource(show_spinner="Démarrage…")
 def get_assistant() -> Assistant:
     return Assistant()
+
+
+@st.cache_resource
+def analyze_limiter() -> RateLimiter:
+    """Messages analysés par adresse IP (chacun peut appeler le modèle d'IA), toutes sessions confondues."""
+    return RateLimiter(settings.RATE_ANALYZE_PER_MINUTE, 60)
+
+
+@st.cache_resource
+def login_limiter() -> RateLimiter:
+    """Échecs de connexion au tableau de bord, partagés entre toutes les sessions."""
+    return RateLimiter(settings.LOGIN_MAX_FAILURES, 15 * 60)
+
+
+def client_ip() -> str:
+    try:
+        ip = st.context.ip_address
+    except Exception:  # noqa: BLE001  (hors d'une session Streamlit)
+        ip = None
+    return ip if isinstance(ip, str) and ip else "local"
 
 
 def category_label(assistant: Assistant, category_id: str, lang: str = "fr") -> str:

@@ -107,6 +107,8 @@ Les chemins `/api/admin` exigent l'en-tête `X-API-Key`.
 
 Le brouillon vit côté client entre deux messages. Chaque réponse de `/api/analyze` le renvoie avec une signature `draft_token` (HMAC-SHA256, secret `DRAFT_SECRET`). Le client renvoie `draft` et `draft_token` sans les modifier au message suivant et à `/api/reports` ; un brouillon modifié, incomplet ou sans signature est refusé (422). Le client ne peut donc pas s'attribuer une catégorie, une description, un lieu ou une confiance.
 
+Limites de débit par adresse IP (fenêtre glissante, `app/ratelimit.py`) : 20 analyses par minute, écrit et vocal confondus, y compris dans l'interface ; 10 signalements par heure ; 60 consultations du suivi par minute ; 5 échecs de connexion au tableau de bord par quart d'heure. Au-delà, l'API répond 429 avec l'en-tête `Retry-After`. Les compteurs sont en mémoire, propres à chaque processus. Derrière un proxy, lancer uvicorn avec `--proxy-headers --forwarded-allow-ips` pour compter l'adresse du citoyen et non celle du proxy.
+
 ## Cas d'erreur
 
 | Cas | Comportement |
@@ -124,7 +126,7 @@ Le brouillon vit côté client entre deux messages. Chaque réponse de `/api/ana
 
 ## Sécurité
 
-Sorties du modèle contrôlées champ par champ. Brouillon de l'API validé et signé par le serveur. Orientation recalculée par le serveur. Destinations issues de la seule base de connaissances, webhooks en https uniquement. Administration fermée tant qu'aucun secret n'est configuré. Audio non conservé, aucune donnée d'identité collectée. Toutes les décisions et corrections sont tracées.
+Sorties du modèle contrôlées champ par champ. Brouillon de l'API validé et signé par le serveur. Débit limité par adresse IP, connexion au tableau de bord bloquée après plusieurs échecs. Orientation recalculée par le serveur. Destinations issues de la seule base de connaissances, webhooks en https uniquement. Administration fermée tant qu'aucun secret n'est configuré. Audio non conservé, aucune donnée d'identité collectée. Toutes les décisions et corrections sont tracées.
 
 ## Évolution vers la production
 

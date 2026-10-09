@@ -61,4 +61,11 @@ ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
 # redémarrage ; à fixer si l'API tourne sur plusieurs processus).
 DRAFT_SECRET = os.getenv("DRAFT_SECRET", "") or secrets.token_hex(32)
 
+# Limites de débit par adresse IP (0 = pas de limite). Chaque analyse peut appeler le modèle d'IA.
+RATE_ANALYZE_PER_MINUTE = int(os.getenv("RATE_ANALYZE_PER_MINUTE", "20"))
+RATE_REPORTS_PER_HOUR = int(os.getenv("RATE_REPORTS_PER_HOUR", "10"))
+RATE_TRACK_PER_MINUTE = int(os.getenv("RATE_TRACK_PER_MINUTE", "60"))
+# Tableau de bord : échecs de connexion tolérés par adresse IP sur 15 minutes.
+LOGIN_MAX_FAILURES = int(os.getenv("LOGIN_MAX_FAILURES", "5"))
+
 LANGS = {"fr": "français", "wo": "wolof", "en": "anglais"}

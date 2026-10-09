@@ -107,6 +107,7 @@ docs/ARCHITECTURE.md      architecture, modèle de données, API, sécurité, é
 - Le suivi public n'affiche que le statut, la catégorie, l'organisme et les dates.
 - L'organisme est recalculé par le serveur à l'envoi ; une valeur venue du client est ignorée.
 - Le brouillon échangé avec l'API est signé par le serveur : un client ne peut pas modifier la catégorie, la description, le lieu ou la confiance.
+- Débit limité par adresse IP (analyses, signalements, suivi) et connexion au tableau de bord bloquée 15 minutes après 5 échecs.
 - La destination d'une transmission vient uniquement de la base de connaissances.
 - Chaque décision d'orientation et chaque correction manuelle est tracée avec son auteur.
 

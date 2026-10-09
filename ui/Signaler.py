@@ -9,14 +9,14 @@ import streamlit as st  # noqa: E402
 
 from app import voice  # noqa: E402
 from app.messages import msg  # noqa: E402
-from ui.common import (PAGE_TRACK, URGENCY_LABELS, category_label, esc, get_assistant, setup,  # noqa: E402
-                       steps)
+from ui.common import (PAGE_TRACK, URGENCY_LABELS, analyze_limiter, category_label, client_ip,  # noqa: E402
+                       esc, get_assistant, setup, steps)
 
 setup("Signaler")
 assistant = get_assistant()
 state = st.session_state
 for key, default in {"messages": [], "draft": None, "stage": "talk", "decision": None, "report": None,
-                     "mic_key": 0, "last_audio": None, "lang": "fr", "speak": None}.items():
+                     "mic_key": 0, "last_audio": None, "lang": "fr", "speak": None, "notice": None}.items():
     state.setdefault(key, default)
 
 LANG_OPTIONS = {"Auto": None, "Français": "fr", "Wolof": "wo", "English": "en"}
@@ -41,6 +41,10 @@ def reset() -> None:
 
 
 def handle(text: str | None = None, audio: bytes | None = None, mime: str = "audio/wav") -> None:
+    if analyze_limiter().take(client_ip()):
+        state.mic_key += 1
+        state.notice = "Vous avez envoyé beaucoup de messages. Patientez une minute, puis réessayez."
+        return
     with st.spinner("Je vous écoute…" if audio else "Un instant…"):
         turn = assistant.analyze(state.draft, text=text, audio=audio, mime_type=mime, lang=forced_lang)
     state.messages.append({"role": "user", "content": turn.heard or text or "Message vocal"})
@@ -120,6 +124,9 @@ elif state.stage == "done" and state.report:
         st.rerun()
 
 else:
+    if state.notice:
+        st.warning(state.notice)
+        state.notice = None
     if assistant.offline:
         st.info("Mode hors ligne : écrivez votre message. Le micro s'active dès qu'une clé GEMINI_API_KEY "
                 "est renseignée dans le fichier .env.")
