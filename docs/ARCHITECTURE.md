@@ -113,6 +113,10 @@ Le brouillon vit côté client entre deux messages. Chaque réponse de `/api/ana
 
 Limites de débit par adresse IP (fenêtre glissante, `app/ratelimit.py`) : 20 analyses par minute, écrit et vocal confondus, y compris dans l'interface ; 10 signalements par heure ; 60 consultations du suivi par minute ; 5 échecs de connexion au tableau de bord par quart d'heure. Au-delà, l'API répond 429 avec l'en-tête `Retry-After`. Les compteurs sont en mémoire, propres à chaque processus. Derrière un proxy, lancer uvicorn avec `--proxy-headers --forwarded-allow-ips` pour compter l'adresse du citoyen et non celle du proxy.
 
+## Carte en direct
+
+Le tableau de bord affiche les signalements sur une carte (`ui/live_map.py`, pydeck, fond Carto sans clé) qui se relit toutes les 15 secondes sans recharger la page. Un point par signalement : à la position GPS si le citoyen l'a fournie, sinon près du centre de la commune, décalé de 250 m au plus pour que les signalements d'une même commune ne s'empilent pas. Couleur selon l'état (rouge : alerte en attente, orange : à vérifier, indigo : chez les services, vert : résolu), taille selon l'urgence, halo pour les signalements de moins de 15 minutes. L'infobulle donne la référence, le problème, le lieu, le statut et l'organisme ; ses textes sont échappés. Les filtres du tableau de bord s'appliquent à la carte. Un bouton signale les nouveaux signalements et actualise la liste.
+
 ## Alertes d'urgence
 
 Un signalement d'urgence « critique » (danger immédiat pour des personnes) crée une alerte, même s'il part en vérification humaine sans organisme : c'est le cas où une équipe doit intervenir le plus vite. Les `escalation_rules` d'un organisme peuvent étendre l'alerte à d'autres niveaux (`{when_urgency: [high], action: notify_admin}`). Une alerte par signalement au plus (`app/alerts.py`, table `alerts`).

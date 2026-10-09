@@ -177,6 +177,15 @@ header[data-testid="stHeader"]{display:none;}
 .yg-panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; height:100%;}
 .yg-panel h4{font-family:var(--display); font-weight:600; font-size:1rem; margin:0 0 .6rem; padding:0; color:var(--indigo);}
 .yg-panel p{margin:.25rem 0; line-height:1.5;} .yg-panel p span{color:var(--muted);}
+.yg-legend{display:flex; flex-wrap:wrap; gap:.4rem 1.1rem; margin:.6rem 0 .2rem; font-size:.88rem; color:var(--muted);}
+.yg-legend span{display:inline-flex; align-items:center; gap:.4rem;}
+.yg-legend i{width:.8rem; height:.8rem; border-radius:50%; display:inline-block;}
+.yg-legend i.ring{background:transparent; border:3px solid var(--signal);}
+.yg-live{display:inline-flex; align-items:center; gap:.45rem; font-size:.88rem; color:var(--muted);}
+.yg-live::before{content:""; width:.55rem; height:.55rem; border-radius:50%; background:var(--ok);
+  animation:yg-live 2s ease-in-out infinite;}
+@keyframes yg-live{50%{opacity:.3}}
+@media (prefers-reduced-motion: reduce){.yg-live::before{animation:none;}}
 .yg-alert{background:var(--stop-soft); border:1px solid var(--stop); border-left:6px solid var(--stop);
   border-radius:12px; padding:.75rem 1rem; color:var(--ink); line-height:1.45;}
 .yg-alert b{color:var(--stop); margin-right:.35rem;}

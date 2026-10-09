@@ -3,15 +3,16 @@ import json
 import math
 import secrets
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from app.storage import TRANSITIONS, StorageError  # noqa: E402
 from config import settings  # noqa: E402
+from ui import live_map  # noqa: E402
 from ui.common import (STATUS_LABELS, URGENCY_LABELS, URGENCY_TONE, badge, category_label,  # noqa: E402
                        client_ip, esc, get_assistant, login_limiter, setup, when, when_short)
 
@@ -98,7 +99,13 @@ st.markdown(
     f"<div class='yg-kpi ok'><b>{counts['solved']}</b><span>Résolus</span></div></div>", unsafe_allow_html=True)
 
 if not all_reports:
-    st.info("Aucun signalement pour l'instant. Ils apparaîtront ici dès qu'un citoyen en enverra un.")
+    @st.fragment(run_every=live_map.REFRESH_S)
+    def wait_for_first_report():
+        if storage.list_reports(limit=1):
+            st.rerun(scope="app")
+        st.info("Aucun signalement pour l'instant. Ils apparaîtront ici dès qu'un citoyen en enverra un.")
+
+    wait_for_first_report()
     st.stop()
 
 # ---------------------------------------------------------------- filtres
@@ -112,9 +119,14 @@ urg_filter = f3.selectbox("Priorité", [None, *URGENCY_LABELS],
                           format_func=lambda v: "Toutes" if v is None else URGENCY_LABELS[v])
 status_filter = f4.selectbox("Statut", [None, *STATUS_LABELS],
                              format_func=lambda v: "Tous" if v is None else STATUS_LABELS[v])
-reports = [r for r in all_reports
-           if (not org_filter or r["org_id"] == org_filter) and (not cat_filter or r["category"] == cat_filter)
-           and (not urg_filter or r["urgency"] == urg_filter) and (not status_filter or r["status"] == status_filter)]
+
+
+def matches(r: dict) -> bool:
+    return ((not org_filter or r["org_id"] == org_filter) and (not cat_filter or r["category"] == cat_filter)
+            and (not urg_filter or r["urgency"] == urg_filter) and (not status_filter or r["status"] == status_filter))
+
+
+reports = [r for r in all_reports if matches(r)]
 if not reports:
     st.info("Aucun signalement ne correspond à ces filtres. Élargissez la sélection.")
     st.stop()
@@ -137,26 +149,37 @@ rows = "".join(
     f"<td class='place'>{esc(r['location_text'] or r['territorial_area'] or 'Non précisé')}</td>"
     f"<td>{esc(r['org_name'] or 'À déterminer')}</td><td>{confidence_cell(r['confidence_organization'])}</td></tr>"
     for r in reports)
-tab_list, tab_map = st.tabs([f"Liste ({len(reports)})", "Carte"])
+tab_list, tab_map = st.tabs([f"Liste ({len(reports)})", "Carte en direct"])
 tab_list.markdown(
     "<div class='yg-tablewrap'><table class='yg-table'><thead><tr><th>Référence</th><th>Créé le</th><th>Statut</th>"
     "<th>Catégorie</th><th>Priorité</th><th>Lieu</th><th>Organisme</th><th>Confiance</th></tr></thead>"
     f"<tbody>{rows}</tbody></table></div>", unsafe_allow_html=True)
 
-points = []
-for r in reports:
-    zone = assistant.gazetteer.get(r["zone_id"])
-    if r["latitude"] is not None and r["longitude"] is not None:
-        points.append({"lat": r["latitude"], "lon": r["longitude"]})
-    elif zone and zone.lat is not None:
-        points.append({"lat": zone.lat, "lon": zone.lon})
-with tab_map:
+
+@st.fragment(run_every=live_map.REFRESH_S)
+def show_live_map(known: frozenset):
+    """Relit la base toutes les REFRESH_S secondes : seule la carte se redessine, pas la page."""
+    fresh = [r for r in storage.list_reports(limit=2000) if matches(r)]
+    alert_refs = {a["reference"] for a in storage.list_alerts()}
+    points = live_map.map_points(fresh, assistant.gazetteer, alert_refs,
+                                 {"status": STATUS_LABELS, "urgency": URGENCY_LABELS})
+    head, action = st.columns([3, 1], vertical_alignment="center")
+    head.markdown(f"<span class='yg-live'>En direct · {len(points)} signalement(s) sur la carte · "
+                  f"mis à jour à {datetime.now(timezone.utc):%H:%M:%S}</span>", unsafe_allow_html=True)
+    new = [r for r in fresh if r["reference"] not in known]
+    if new and action.button(f"{len(new)} nouveau(x) · actualiser la liste", type="primary", width="stretch"):
+        st.rerun(scope="app")
     if points:
-        st.map(pd.DataFrame(points), size=140, color="#1B2A6B")
-        st.caption("Sans position GPS fournie par le citoyen, le point est placé au centre approximatif "
-                   "de la commune, pas à l'adresse exacte.")
+        st.pydeck_chart(live_map.deck(points), height=520, key="carte_direct")
     else:
         st.info("Aucun de ces signalements n'a de lieu reconnu.")
+    st.markdown(live_map.legend_html(), unsafe_allow_html=True)
+    st.caption("Sans position GPS fournie par le citoyen, le point est placé près du centre de la commune, "
+               "pas à l'adresse exacte. Heures en temps universel (heure de Dakar).")
+
+
+with tab_map:
+    show_live_map(frozenset(r["reference"] for r in reports))
 
 # ---------------------------------------------------------------- détail et actions
 st.markdown("<h3>Traiter un signalement</h3>", unsafe_allow_html=True)
