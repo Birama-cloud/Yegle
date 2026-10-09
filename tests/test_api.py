@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -36,6 +38,32 @@ def test_entrees_refusees(client):
     assert client.post("/api/reports", json={"draft": {"category": "inventee"}}).status_code == 422
     r = client.post("/api/analyze/audio", files={"file": ("a.txt", b"hello", "text/plain")})
     assert r.status_code == 415
+
+
+@pytest.mark.parametrize("bad", [
+    {"category": "eau", "description": "x" * 301},              # texte trop long
+    {"category": "eau", "description": "fuite", "transcript": 42},
+    {"category": "eau", "description": "fuite", "latitude": "abc", "longitude": 0},
+    {"category": "eau", "description": "fuite", "latitude": 95, "longitude": 0},
+    {"category": "eau", "description": "fuite", "urgency": "apocalypse"},
+    {"category": "eau", "description": "fuite", "confidence_problem": 7},
+    {"category": "eau", "description": "fuite", "asked": ["nimporte"]},
+    {"category": ["eau"], "description": "fuite"},
+])
+def test_brouillon_malforme_refuse_sans_erreur_serveur(client, bad):
+    assert client.post("/api/reports", json={"draft": bad}).status_code == 422
+    assert client.post("/api/analyze", json={"text": "à Ouakam", "draft": bad}).status_code == 422
+    r = client.post("/api/analyze/audio", data={"draft": json.dumps(bad)},
+                    files={"file": ("a.wav", b"RIFF", "audio/wav")})
+    assert r.status_code == 422
+    assert client.get("/api/admin/reports", headers=ADMIN).json() == []
+
+
+def test_brouillon_cles_inconnues_ignorees(client):
+    draft = {"category": "eau", "description": "Fuite d'eau", "location_text": "Ouakam",
+             "org_id": "ORG_PIRATE", "responsible_organization": {"id": "ORG_PIRATE"}}
+    ref = client.post("/api/reports", json={"draft": draft}).json()["report"]["reference"]
+    assert client.get(f"/api/admin/reports/{ref}", headers=ADMIN).json()["report"]["org_id"] == "ORG_SENEAU"
 
 
 def test_administration_protegee(client, monkeypatch):

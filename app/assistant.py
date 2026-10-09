@@ -16,6 +16,7 @@ from app.zones import Gazetteer
 from config import settings
 
 MAX_PROBLEM_QUESTIONS = 2
+MAX_TRANSCRIPT = 8000         # on garde la fin de la conversation au-delà
 FINAL_STATUSES = ("RESOLVED", "CLOSED", "REJECTED")
 
 
@@ -107,7 +108,7 @@ class Assistant:
             draft["source"] = "voice"
         elif not draft["transcript"]:
             draft["source"] = "text"
-        draft["transcript"] = (draft["transcript"] + "\n" + heard).strip()
+        draft["transcript"] = (draft["transcript"] + "\n" + heard).strip()[-MAX_TRANSCRIPT:]
         if latitude is not None and longitude is not None:
             draft["latitude"], draft["longitude"] = float(latitude), float(longitude)
 

@@ -2,11 +2,12 @@
 import json
 import secrets
 from functools import lru_cache
+from typing import Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from app.assistant import Assistant, Turn
+from app.assistant import MAX_TRANSCRIPT, Assistant, Turn
 from app.storage import STATUSES, StorageError
 from config import settings
 
@@ -28,16 +29,39 @@ def require_admin(x_api_key: str = Header(default="")) -> str:
     return "admin:api"
 
 
+class Draft(BaseModel):
+    """Brouillon renvoyé par le client entre deux messages : types et longueurs contrôlés.
+    Les clés inconnues sont ignorées ; l'organisme et la zone sont de toute façon recalculés."""
+    model_config = ConfigDict(extra="ignore")
+
+    category: str | None = Field(default=None, max_length=50)
+    subcategory: str | None = Field(default=None, max_length=50)
+    description: str | None = Field(default=None, max_length=300)
+    description_user: str | None = Field(default=None, max_length=300)
+    transcript: str = Field(default="", max_length=MAX_TRANSCRIPT)
+    location_text: str | None = Field(default=None, max_length=200)
+    zone_id: str | None = Field(default=None, max_length=64)
+    territorial_area: str | None = Field(default=None, max_length=100)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    urgency: Literal["low", "medium", "high", "critical"] = "medium"
+    language: Literal["fr", "wo", "en"] = "fr"
+    source: Literal["voice", "text"] = "voice"
+    confidence_problem: float = Field(default=0.0, ge=0, le=1)
+    confidence_location: float = Field(default=0.0, ge=0, le=1)
+    asked: list[Literal["problem", "location", "commune"]] = Field(default_factory=list, max_length=50)
+
+
 class AnalyzeIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
-    draft: dict | None = None
+    draft: Draft | None = None
     language: str | None = Field(default=None, pattern="^(fr|wo|en)$")
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
 
 
 class SubmitIn(BaseModel):
-    draft: dict
+    draft: Draft
 
 
 class StatusIn(BaseModel):
@@ -72,7 +96,8 @@ def categories():
 @app.post("/api/analyze")
 def analyze(body: AnalyzeIn):
     """Un message écrit du citoyen : renvoie une question, ou un résumé à confirmer."""
-    return _turn(get_assistant().analyze(body.draft, text=body.text, lang=body.language,
+    draft = body.draft.model_dump() if body.draft else None
+    return _turn(get_assistant().analyze(draft, text=body.text, lang=body.language,
                                          latitude=body.latitude, longitude=body.longitude))
 
 
@@ -88,8 +113,8 @@ async def analyze_audio(file: UploadFile = File(...), draft: str = Form(default=
     if language not in (None, *settings.LANGS):
         raise HTTPException(422, "Langue inconnue")
     try:
-        parsed = json.loads(draft) if draft else None
-    except json.JSONDecodeError as e:
+        parsed = Draft.model_validate(json.loads(draft)).model_dump() if draft else None
+    except (json.JSONDecodeError, ValidationError) as e:
         raise HTTPException(422, "Brouillon illisible") from e
     return _turn(get_assistant().analyze(parsed, audio=data, mime_type=file.content_type, lang=language))
 
@@ -97,7 +122,7 @@ async def analyze_audio(file: UploadFile = File(...), draft: str = Form(default=
 @app.post("/api/reports", status_code=201)
 def create_report(body: SubmitIn):
     """Enregistre un signalement confirmé. L'organisme est recalculé par le serveur."""
-    turn = get_assistant().submit(body.draft)
+    turn = get_assistant().submit(body.draft.model_dump())
     if turn.kind != "done":
         raise HTTPException(422, "Signalement incomplet : catégorie et description obligatoires")
     return _turn(turn)
