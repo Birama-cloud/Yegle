@@ -1,8 +1,18 @@
 """Base de données des signalements (SQLite) : signalements, décisions d'orientation,
-historique des statuts et transmissions. Chaque modification est tracée."""
+historique des statuts et transmissions. Chaque modification est tracée.
+
+Accès concurrents : une instance est partagée par les threads de FastAPI et par toutes les
+sessions Streamlit, et l'API et l'interface sont deux processus sur le même fichier.
+- un verrou par instance : une seule opération à la fois sur la connexion ;
+- chaque écriture est une transaction BEGIN IMMEDIATE : la lecture qui la précède (statut
+  actuel, existence du signalement) et l'écriture forment un tout, même entre processus ;
+- journal WAL et délai d'attente : les lectures ne bloquent pas, les écritures patientent.
+"""
 import json
 import secrets
 import sqlite3
+import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -71,22 +81,53 @@ class Storage:
         self.path = str(path or settings.DB_PATH)
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.path, check_same_thread=False)
+        # isolation_level=None : les transactions sont ouvertes explicitement par _write().
+        self.db = sqlite3.connect(self.path, check_same_thread=False, timeout=15, isolation_level=None)
         self.db.row_factory = sqlite3.Row
+        self._lock = threading.RLock()
+        self._depth = 0
         self.db.execute("PRAGMA foreign_keys = ON")
-        self.db.executescript(SCHEMA)
+        if self.path != ":memory:":
+            self.db.execute("PRAGMA journal_mode = WAL")
+        with self._write():
+            for statement in filter(str.strip, SCHEMA.split(";")):
+                self.db.execute(statement)
+
+    @contextmanager
+    def _write(self):
+        """Transaction d'écriture. Réentrante : un appel imbriqué rejoint la transaction en cours."""
+        with self._lock:
+            outer = self._depth == 0
+            if outer:
+                self.db.execute("BEGIN IMMEDIATE")
+            self._depth += 1
+            try:
+                yield
+            except BaseException:
+                self._depth -= 1
+                if outer:
+                    self.db.execute("ROLLBACK")
+                raise
+            self._depth -= 1
+            if outer:
+                self.db.execute("COMMIT")
+
+    def _query(self, sql: str, params=()) -> list[dict]:
+        with self._lock:
+            return [dict(r) for r in self.db.execute(sql, params).fetchall()]
 
     # ------------------------------------------------------------------ création
     def _new_reference(self) -> str:
         day = datetime.now(timezone.utc).strftime("%y%m%d")
         while True:
             ref = f"{settings.REF_PREFIX}-{day}-" + "".join(secrets.choice(ALPHABET) for _ in range(6))
-            if not self.db.execute("SELECT 1 FROM reports WHERE reference = ?", (ref,)).fetchone():
+            if not self._query("SELECT 1 FROM reports WHERE reference = ?", (ref,)):
                 return ref
 
     def create_report(self, draft: dict, decision) -> dict:
-        t, ref, org = now(), self._new_reference(), decision.organization
-        with self.db:
+        org = decision.organization
+        with self._write():
+            t, ref = now(), self._new_reference()     # référence tirée dans la transaction : unique
             cur = self.db.execute(
                 """INSERT INTO reports (reference, created_at, updated_at, status, category, subcategory,
                    description, transcript, location_text, zone_id, territorial_area, latitude, longitude,
@@ -107,7 +148,7 @@ class Storage:
                                org.confidence if org else None, org.rule_id if org else None,
                                decision.status, decision.justification,
                                json.dumps([c.__dict__ for c in decision.candidates], ensure_ascii=False))
-        return self.get(ref)
+            return self.get(ref)
 
     def _log_decision(self, report_id, actor, org_id, org_name, confidence, rule_id, status, justification,
                       candidates_json="[]"):
@@ -118,9 +159,14 @@ class Storage:
 
     # ------------------------------------------------------------------ lecture
     def get(self, reference: str) -> dict | None:
-        row = self.db.execute("SELECT * FROM reports WHERE reference = ?",
-                              ((reference or "").strip().upper(),)).fetchone()
-        return dict(row) if row else None
+        rows = self._query("SELECT * FROM reports WHERE reference = ?", ((reference or "").strip().upper(),))
+        return rows[0] if rows else None
+
+    def _require(self, reference: str) -> dict:
+        r = self.get(reference)
+        if not r:
+            raise StorageError("Signalement introuvable")
+        return r
 
     def public_view(self, reference: str) -> dict | None:
         """Ce que le citoyen peut consulter : le strict minimum, aucune donnée personnelle."""
@@ -139,66 +185,63 @@ class Storage:
                 clauses.append(f"{column} = ?")
                 params.append(value)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-        rows = self.db.execute(f"SELECT * FROM reports {where} ORDER BY created_at DESC, id DESC LIMIT ?",
-                               (*params, int(limit)))
-        return [dict(r) for r in rows]
+        return self._query(f"SELECT * FROM reports {where} ORDER BY created_at DESC, id DESC LIMIT ?",
+                           (*params, int(limit)))
 
     def history(self, reference: str) -> dict:
-        r = self.get(reference)
-        if not r:
-            raise StorageError("Signalement introuvable")
+        with self._lock:
+            r = self._require(reference)
 
-        def rows(table, order):
-            return [dict(x) for x in self.db.execute(
-                f"SELECT * FROM {table} WHERE report_id = ? ORDER BY {order}, id", (r["id"],))]
+            def rows(table, order):
+                return self._query(f"SELECT * FROM {table} WHERE report_id = ? ORDER BY {order}, id", (r["id"],))
 
-        return {"routing": rows("routing_decisions", "decided_at"), "statuses": rows("status_history", "changed_at"),
-                "transmissions": rows("transmissions", "sent_at")}
+            return {"routing": rows("routing_decisions", "decided_at"),
+                    "statuses": rows("status_history", "changed_at"), "transmissions": rows("transmissions", "sent_at")}
 
     def stats(self) -> dict:
-        def count(column):
-            return {row[0] or "—": row[1] for row in
-                    self.db.execute(f"SELECT {column}, COUNT(*) FROM reports GROUP BY {column}")}
+        with self._lock:
+            def count(column):
+                return {row[column] or "—": row["n"] for row in
+                        self._query(f"SELECT {column}, COUNT(*) AS n FROM reports GROUP BY {column}")}
 
-        return {"total": self.db.execute("SELECT COUNT(*) FROM reports").fetchone()[0],
-                "by_status": count("status"), "by_category": count("category"), "by_organization": count("org_name")}
+            return {"total": self._query("SELECT COUNT(*) AS n FROM reports")[0]["n"],
+                    "by_status": count("status"), "by_category": count("category"),
+                    "by_organization": count("org_name")}
 
     # ------------------------------------------------------------------ modification
     def set_status(self, reference: str, new_status: str, actor: str, note: str = "") -> dict:
-        r = self.get(reference)
-        if not r:
-            raise StorageError("Signalement introuvable")
+        """Le statut actuel est relu dans la transaction : deux changements simultanés ne peuvent
+        pas partir du même statut, le second est contrôlé par rapport au résultat du premier."""
         if new_status not in STATUSES:
             raise StorageError(f"Statut inconnu : {new_status}")
-        if new_status not in TRANSITIONS[r["status"]]:
-            raise StorageError(f"Passage impossible de {r['status']} à {new_status}")
-        t = now()
-        with self.db:
+        with self._write():
+            r = self._require(reference)
+            if new_status not in TRANSITIONS[r["status"]]:
+                raise StorageError(f"Passage impossible de {r['status']} à {new_status}")
+            t = now()
             self.db.execute("UPDATE reports SET status = ?, updated_at = ? WHERE id = ?", (new_status, t, r["id"]))
             self.db.execute("INSERT INTO status_history (report_id, changed_at, old_status, new_status, actor, note)"
                             " VALUES (?,?,?,?,?,?)", (r["id"], t, r["status"], new_status, actor, note))
-        return self.get(reference)
+            return self.get(reference)
 
     def reassign(self, reference: str, org_id: str, org_name: str, service: str | None, actor: str,
                  reason: str) -> dict:
         """Correction manuelle de l'organisme par un administrateur (toujours tracée)."""
-        r = self.get(reference)
-        if not r:
-            raise StorageError("Signalement introuvable")
         if not (reason or "").strip():
             raise StorageError("Un motif est obligatoire pour réorienter un signalement")
-        with self.db:
+        with self._write():
+            r = self._require(reference)
             self.db.execute(
                 "UPDATE reports SET org_id = ?, org_name = ?, org_service = ?, confidence_organization = ?,"
                 " routing_status = ?, updated_at = ? WHERE id = ?",
                 (org_id, org_name, service, 1.0, "ready_for_transmission", now(), r["id"]))
             self._log_decision(r["id"], actor, org_id, org_name, 1.0, None, "ready_for_transmission",
                                f"Orientation manuelle : {reason.strip()}")
-        return self.get(reference)
+            return self.get(reference)
 
     def add_transmission(self, reference: str, channel: str, recipient: str | None, success: bool,
                          error: str | None = None) -> None:
-        r = self.get(reference)
-        with self.db:
+        with self._write():
+            r = self._require(reference)
             self.db.execute("INSERT INTO transmissions (report_id, sent_at, channel, recipient, success, error)"
                             " VALUES (?,?,?,?,?,?)", (r["id"], now(), channel, recipient, int(success), error))

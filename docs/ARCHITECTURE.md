@@ -126,7 +126,7 @@ Limites de débit par adresse IP (fenêtre glissante, `app/ratelimit.py`) : 20 a
 
 ## Sécurité
 
-Sorties du modèle contrôlées champ par champ. Brouillon de l'API validé et signé par le serveur. Débit limité par adresse IP, connexion au tableau de bord bloquée après plusieurs échecs. Orientation recalculée par le serveur. Destinations issues de la seule base de connaissances, webhooks en https uniquement. Administration fermée tant qu'aucun secret n'est configuré. Audio non conservé, aucune donnée d'identité collectée. Toutes les décisions et corrections sont tracées.
+Sorties du modèle contrôlées champ par champ. Brouillon de l'API validé et signé par le serveur. Débit limité par adresse IP, connexion au tableau de bord bloquée après plusieurs échecs. Accès à SQLite sérialisé par instance, chaque écriture dans une transaction `BEGIN IMMEDIATE` (lecture du statut et modification indissociables, y compris entre l'API et l'interface), journal WAL. Orientation recalculée par le serveur. Destinations issues de la seule base de connaissances, webhooks en https uniquement. Administration fermée tant qu'aucun secret n'est configuré. Audio non conservé, aucune donnée d'identité collectée. Toutes les décisions et corrections sont tracées.
 
 ## Évolution vers la production
 
