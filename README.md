@@ -74,9 +74,13 @@ python -m scripts.demo --save    idem, en enregistrant (pour peupler le tableau 
 
 ## À faire avant la démonstration
 
-1. **Vérifier les fiches organismes.** Les compétences de `data/organismes.yaml` sont des hypothèses de départ, livrées sans date de vérification. Tant qu'une fiche n'est pas vérifiée, ses signalements passent en vérification humaine. Pour chaque organisme : contrôler la compétence sur une source officielle, remplir `source_url` et `last_verified_at`.
-2. **Faire relire le wolof** de `app/messages.py` par un locuteur.
-3. **Contrôler les coordonnées** des communes : `python -m scripts.verifier_zones`.
+1. **Faire relire le wolof** de `app/messages.py` par un locuteur, y compris la phrase ajoutée quand le problème n'est pas compris (`not_understood`).
+2. **Fiche Mairie.** C'est la seule fiche de `data/organismes.yaml` encore sans date de vérification : ses signalements (voirie, infrastructure) passent en vérification humaine. La voirie est partagée entre la commune, la ville et l'État selon le type de route.
+
+Déjà fait le 2026-10-09 :
+
+- **Fiches organismes** SEN'EAU, ONAS, SENELEC, SONAGED et Ville de Dakar vérifiées sur sources officielles (`source_url` et `last_verified_at`).
+- **Coordonnées des 23 zones** contrôlées avec OpenStreetMap, écart inférieur à 1 km. Après tout ajout de zone : `python -m scripts.verifier_zones`.
 
 ## Ajouter un organisme
 
