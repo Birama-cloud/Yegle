@@ -119,6 +119,10 @@ class Storage:
             if outer:
                 self.db.execute("COMMIT")
 
+    def transaction(self):
+        """Regroupe plusieurs opérations en une seule transaction (tout ou rien)."""
+        return self._write()
+
     def _query(self, sql: str, params=()) -> list[dict]:
         with self._lock:
             return [dict(r) for r in self.db.execute(sql, params).fetchall()]
@@ -231,6 +235,17 @@ class Storage:
             self.db.execute("INSERT INTO status_history (report_id, changed_at, old_status, new_status, actor, note)"
                             " VALUES (?,?,?,?,?,?)", (r["id"], t, r["status"], new_status, actor, note))
             return self.get(reference)
+
+    def recover_interrupted(self, older_than_s: int = 600) -> list[str]:
+        """Signalements restés « Reçu » (arrêt pendant une transmission) : passés en vérification."""
+        cutoff = datetime.fromtimestamp(datetime.now(timezone.utc).timestamp() - older_than_s, timezone.utc)
+        with self._write():
+            refs = [r["reference"] for r in self._query(
+                "SELECT reference FROM reports WHERE status = 'RECEIVED' AND created_at < ?",
+                (cutoff.isoformat(timespec="seconds"),))]
+            for ref in refs:
+                self.set_status(ref, "NEEDS_REVIEW", "system", "Transmission interrompue : à vérifier")
+            return refs
 
     def reassign(self, reference: str, org_id: str, org_name: str, service: str | None, actor: str,
                  reason: str) -> dict:

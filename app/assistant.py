@@ -5,16 +5,18 @@ Le brouillon (draft) est un simple dictionnaire : il vit côté interface entre 
 Au moment de l'envoi, tout est recalculé côté serveur (zone, organisme) : on ne fait
 jamais confiance à un organisme ou à un niveau de confiance venu du client.
 """
+import logging
 from dataclasses import dataclass, field
 
 from app import alerts, routing, transmission
 from app.knowledge import Knowledge
 from app.messages import msg
-from app.storage import Storage, StorageError
+from app.storage import TRANSITIONS, Storage, StorageError
 from app.understanding import extract_llm, extract_rules
 from app.zones import Gazetteer
 from config import settings
 
+log = logging.getLogger(__name__)
 MAX_PROBLEM_QUESTIONS = 2
 MAX_TRANSCRIPT = 8000         # on garde la fin de la conversation au-delà
 FINAL_STATUSES = ("RESOLVED", "CLOSED", "REJECTED")
@@ -44,6 +46,7 @@ class Assistant:
         self.knowledge = knowledge or Knowledge.load()
         self.gazetteer = gazetteer or Gazetteer.load()
         self.storage = storage or Storage()
+        self.storage.recover_interrupted()       # arrêt pendant une transmission : rien ne reste en suspens
         self.llm = llm
         if llm is None and settings.LLM_MODE == "gemini":
             from app.llm.client import LLMClient
@@ -170,12 +173,24 @@ class Assistant:
             draft["subcategory"] = None
 
         decision = self._route(draft)
-        report = self.storage.create_report(draft, decision)
-        sent = decision.ready and transmission.transmit(self.storage, self.knowledge, report)
-        if not decision.ready:
-            self.storage.set_status(report["reference"], "NEEDS_REVIEW", "system", decision.justification)
+        with self.storage.transaction():       # jamais un signalement « Reçu » sans suite s'il part en vérification
+            report = self.storage.create_report(draft, decision)
+            if not decision.ready:
+                self.storage.set_status(report["reference"], "NEEDS_REVIEW", "system", decision.justification)
+        sent = False
+        if decision.ready:
+            try:
+                sent = transmission.transmit(self.storage, self.knowledge, report)
+            except Exception as e:  # noqa: BLE001  (imprévu : le signalement est déjà enregistré)
+                log.exception("Transmission de %s interrompue", report["reference"])
+                if "NEEDS_REVIEW" in TRANSITIONS[self.storage.get(report["reference"])["status"]]:
+                    self.storage.set_status(report["reference"], "NEEDS_REVIEW", "system",
+                                            f"Transmission interrompue ({type(e).__name__}) : à vérifier")
         report = self.storage.get(report["reference"])
-        alerts.escalate(self.storage, self.knowledge, report)
+        try:
+            alerts.escalate(self.storage, self.knowledge, report)
+        except Exception:  # noqa: BLE001  (l'alerte ne doit pas faire perdre la confirmation au citoyen)
+            log.exception("Alerte de %s non créée", report["reference"])
         if sent:
             text_out = msg("done_routed", language, org=report["org_name"], ref=report["reference"])
         else:

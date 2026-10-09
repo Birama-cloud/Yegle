@@ -131,7 +131,8 @@ En mode hors ligne (mots-clés), l'urgence ne dépasse jamais « élevée » : s
 | Lieu trop large ou inconnu | Une demande de précision, puis vérification humaine |
 | Organisme introuvable, plusieurs possibles, confiance faible | Vérification humaine, aucun nom annoncé |
 | Modèle indisponible ou quota atteint | Modèle de secours, puis OpenAI, puis mots-clés pour l'écrit |
-| Webhook en échec | Tentative enregistrée, retour en vérification humaine |
+| Webhook en échec, adresse invalide, erreur imprévue pendant l'envoi | Tentative enregistrée avec l'erreur, vérification humaine ; le citoyen reçoit sa référence |
+| Arrêt du serveur pendant une transmission | Au démarrage, les signalements restés « Reçu » plus de 10 minutes passent en vérification humaine |
 | Annulation | Rien n'est enregistré |
 
 ## Sécurité
