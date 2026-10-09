@@ -52,7 +52,7 @@ def test_administration(client):
     assert len(client.get("/api/admin/reports", headers=ADMIN).json()) == 1
     assert client.get("/api/admin/reports?category=eau", headers=ADMIN).json() == []
     detail = client.get(f"/api/admin/reports/{ref}", headers=ADMIN).json()
-    assert detail["report"]["org_name"] == "Mairie de Ouakam" and len(detail["routing"]) == 1
+    assert detail["report"]["org_name"] == "Ville de Dakar" and len(detail["routing"]) == 1
 
     url = f"/api/admin/reports/{ref}"
     assert client.patch(f"{url}/status", json={"status": "CLOSED"}, headers=ADMIN).status_code == 409
@@ -63,4 +63,4 @@ def test_administration(client):
                         headers=ADMIN).json()
     assert moved["org_name"] == "SENELEC" and moved["status"] == "ROUTED"
     assert client.get("/api/admin/stats", headers=ADMIN).json()["total"] == 1
-    assert len(client.get("/api/admin/organizations", headers=ADMIN).json()) == 4
+    assert len(client.get("/api/admin/organizations", headers=ADMIN).json()) == 6

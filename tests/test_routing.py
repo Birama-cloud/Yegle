@@ -21,7 +21,7 @@ def test_mairie_prend_le_nom_de_la_commune(verified, gazetteer):
 
 
 def test_mairie_sans_commune_part_en_verification(verified, gazetteer):
-    d = routing.route(verified, "proprete", None, gazetteer.get("dep-pikine"), 0.9)
+    d = routing.route(verified, "voirie", None, gazetteer.get("dep-pikine"), 0.9)
     assert not d.ready and "commune non identifiée" in d.justification
 
 

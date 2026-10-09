@@ -83,21 +83,65 @@
   last_verified_at: "2026-10-09"
   source_url: "https://www.senelec.sn"
 
+# Collecte, transport, mise en décharge, traitement et valorisation des déchets solides
+# « sur l'ensemble du territoire national » (loi n° 2022-18 du 23/05/2022, art. 2, JO du 04/06/2022).
+# Autres canaux officiels : rubrique « Alertez-nous » (sonaged.sn/alerte), application SettalMa.
+- organization_id: ORG_SONAGED
+  organization_name: "SONAGED"
+  organization_type: societe_nationale
+  domains: [proprete]
+  subcategories: []
+  territorial_coverage: ["national"]
+  responsible_services:
+    - {name: "Service compétent", subcategories: []}
+  contact_channels:
+    - {type: telephone, value: "+221 33 869 02 62"}
+    - {type: email, value: "contact@sonaged.sn"}
+  api_endpoint_if_available: null
+  transmission_mode: internal_queue
+  routing_rules:
+    - {rule_id: R_PROP_02, category: proprete, confidence: 0.90}
+  escalation_rules: []
+  active_status: true
+  last_verified_at: "2026-10-09"
+  source_url: "https://www.sonaged.sn"
+
+# Ville de Dakar : ses 19 communes forment le département de Dakar. L'extension du réseau
+# d'éclairage public lui revient (CGCL, loi 2013-10, art. 169). Confiance 0,85 et non 0,90 :
+# l'article parle d'extension, et le maire de la commune garde la police de l'éclairage
+# dans les rues (art. 119). Hors du département de Dakar (Pikine, Guédiawaye, Rufisque,
+# Keur Massar), aucun organisme n'est configuré : vérification humaine.
+- organization_id: ORG_VILLE_DAKAR
+  organization_name: "Ville de Dakar"
+  organization_type: collectivite_territoriale
+  domains: [eclairage_public]
+  subcategories: []
+  territorial_coverage: ["departement:dakar"]
+  responsible_services:
+    - {name: "Service de l'éclairage public", subcategories: []}
+  contact_channels: []              # aucun canal officiel trouvé pour signaler une panne
+  api_endpoint_if_available: null
+  transmission_mode: internal_queue
+  routing_rules:
+    - {rule_id: R_ECL_02, category: eclairage_public, confidence: 0.85}
+  escalation_rules: []
+  active_status: true
+  last_verified_at: "2026-10-09"
+  source_url: "https://www.vie-publique.sn/documents/7950/loi-n-2013-10-du-28-decembre-2013-portant-code-general-des-collectivites-locales-7950"
+
 # Une seule fiche pour toutes les mairies : le nom est complété avec la commune
 # du signalement. Sans commune identifiée, le signalement part en vérification.
 #
-# NON VÉRIFIÉE (contrôle du 2026-10-09) : la loi ne confie pas ces domaines à la commune seule.
-# - Propreté : déchets transférés à la ville (CGCL, loi 2013-10, art. 170) ; collecte assurée
-#   par la SONAGED sur tout le territoire (loi 2022-18 du 23/05/2022, art. 2).
-# - Éclairage public : extension du réseau confiée à la ville (art. 169) ; le maire en a la
-#   police dans les rues (art. 119).
+# NON VÉRIFIÉE (contrôle du 2026-10-09) : la propreté (SONAGED) et l'éclairage public
+# (Ville de Dakar) ont été retirés de cette fiche. Restent deux domaines partagés :
 # - Voirie : la commune gère la voirie non classée (art. 299) ; la ville, les voies et places
 #   publiques (art. 169) ; la voirie classée relève de l'État.
+# - Infrastructure : dépend du propriétaire de l'équipement.
 - organization_id: ORG_MAIRIE
   organization_name: "Mairie de {commune}"
   organization_type: collectivite_territoriale
   per_commune: true
-  domains: [voirie, eclairage_public, proprete, infrastructure]
+  domains: [voirie, infrastructure]
   subcategories: []
   territorial_coverage: ["region:dakar"]
   responsible_services:
@@ -107,8 +151,6 @@
   transmission_mode: internal_queue
   routing_rules:
     - {rule_id: R_VOIRIE_01, category: voirie, confidence: 0.80}
-    - {rule_id: R_ECL_01, category: eclairage_public, confidence: 0.80}
-    - {rule_id: R_PROP_01, category: proprete, confidence: 0.80}
     - {rule_id: R_INFRA_01, category: infrastructure, confidence: 0.70}
   escalation_rules: []
   active_status: true

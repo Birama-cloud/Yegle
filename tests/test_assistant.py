@@ -26,7 +26,7 @@ def test_parcours_complet_en_deux_messages(assistant):
 
 def test_un_seul_message_suffit_si_le_lieu_est_dit(assistant):
     t = assistant.analyze(None, text="Le lampadaire est en panne à Ouakam")
-    assert t.kind == "confirm" and "Mairie de Ouakam" in t.message
+    assert t.kind == "confirm" and "Ville de Dakar" in t.message
 
 
 def test_message_hors_sujet(assistant):
@@ -35,7 +35,7 @@ def test_message_hors_sujet(assistant):
 
 
 def test_lieu_trop_large_demande_une_precision_une_seule_fois(assistant):
-    t1 = assistant.analyze(None, text="Les ordures ne sont pas ramassées à Pikine")
+    t1 = assistant.analyze(None, text="Il y a un trou sur la route à Pikine")
     assert t1.kind == "clarify" and "commune" in t1.message
     t2 = assistant.analyze(t1.draft, text="Je ne sais pas")
     assert t2.kind == "confirm" and "Notre équipe vérifiera" in t2.message   # pas d'organisme annoncé
@@ -76,8 +76,21 @@ def test_envoi_refuse_si_brouillon_invalide(assistant):
     assert assistant.storage.list_reports() == []
 
 
+def test_proprete_orientee_vers_la_sonaged_meme_sans_commune(assistant):
+    t1 = assistant.analyze(None, text="Les ordures ne sont pas ramassées à Pikine")
+    t2 = assistant.analyze(t1.draft, text="Je ne sais pas")
+    assert t2.kind == "confirm" and "SONAGED" in t2.message
+    assert assistant.submit(t2.draft).report["status"] == "ROUTED"
+
+
+def test_eclairage_hors_de_la_ville_de_dakar_part_en_verification(assistant):
+    t = assistant.analyze(None, text="Le lampadaire est en panne à Rufisque")
+    t = assistant.analyze(t.draft, text="Je ne sais pas")
+    assert t.kind == "confirm" and t.decision["organization"] is None
+
+
 def test_reorientation_manuelle_tracee(assistant):
-    t = assistant.analyze(None, text="Les ordures ne sont pas ramassées à Pikine")
+    t = assistant.analyze(None, text="Il y a un trou sur la route à Pikine")
     ref = assistant.submit(assistant.analyze(t.draft, text="Je ne sais pas").draft).report["reference"]
 
     with pytest.raises(StorageError, match="motif"):
