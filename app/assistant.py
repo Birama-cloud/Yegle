@@ -135,12 +135,14 @@ class Assistant:
         if not draft["location_text"] and not has_gps and "location" not in draft["asked"]:
             draft["asked"].append("location")
             return Turn("clarify", msg("ask_location", language), language, draft, heard=heard)
-        if not (zone and zone.is_commune) and "commune" not in draft["asked"]:
+        # La commune n'est demandée que si elle peut changer l'orientation : inutile pour un
+        # organisme qui couvre déjà la zone sans dépendre de la commune (ex. SONAGED).
+        decision = self._route(draft)
+        if not (zone and zone.is_commune) and not decision.ready and "commune" not in draft["asked"]:
             draft["asked"].append("commune")
             return Turn("clarify", msg("ask_commune", language), language, draft, heard=heard)
 
-        # 3. Orientation, puis résumé à confirmer.
-        decision = self._route(draft)
+        # 3. Résumé à confirmer.
         place = draft["location_text"] or draft["territorial_area"] or msg("unknown_place", language)
         description = draft.get("description_user") or draft["description"]
         if decision.ready:

@@ -12,7 +12,8 @@ EXAMPLES = [
     ["Il y a une grosse fuite d'eau dans ma rue depuis ce matin", "À Grand-Yoff, près du marché"],
     ["Le lampadaire devant l'école est en panne à Ouakam"],
     ["Un câble électrique est tombé par terre à la Médina, c'est dangereux"],
-    ["Les ordures ne sont pas ramassées depuis une semaine à Pikine", "Je ne sais pas"],
+    ["Les ordures ne sont pas ramassées depuis une semaine à Pikine"],
+    ["Il y a un gros trou sur la route à Pikine", "Je ne sais pas"],
     ["Les égouts débordent aux Parcelles Assainies"],
     ["Bonjour, quel temps fait-il ?"],
 ]

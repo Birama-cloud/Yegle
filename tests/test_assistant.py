@@ -76,11 +76,10 @@ def test_envoi_refuse_si_brouillon_invalide(assistant):
     assert assistant.storage.list_reports() == []
 
 
-def test_proprete_orientee_vers_la_sonaged_meme_sans_commune(assistant):
-    t1 = assistant.analyze(None, text="Les ordures ne sont pas ramassées à Pikine")
-    t2 = assistant.analyze(t1.draft, text="Je ne sais pas")
-    assert t2.kind == "confirm" and "SONAGED" in t2.message
-    assert assistant.submit(t2.draft).report["status"] == "ROUTED"
+def test_proprete_orientee_vers_la_sonaged_sans_demander_la_commune(assistant):
+    t = assistant.analyze(None, text="Les ordures ne sont pas ramassées à Pikine")
+    assert t.kind == "confirm" and "SONAGED" in t.message and "commune" not in t.draft["asked"]
+    assert assistant.submit(t.draft).report["status"] == "ROUTED"
 
 
 def test_eclairage_hors_de_la_ville_de_dakar_part_en_verification(assistant):
