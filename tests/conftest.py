@@ -3,7 +3,7 @@ import os
 
 os.environ.update({"LLM_MODE": "offline", "GEMINI_API_KEY": "", "ADMIN_API_KEY": "cle-de-test",
                    "DB_PATH": ":memory:", "ROUTING_REQUIRE_VERIFIED": "true", "REF_PREFIX": "YGL",
-                   "ALERT_WEBHOOK_URL": ""})
+                   "ALERT_WEBHOOK_URL": "", "TRANSCRIPTION_SEPAREE": "false"})
 
 import pytest  # noqa: E402
 

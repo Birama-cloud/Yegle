@@ -10,6 +10,9 @@ du moteur d'orientation, à partir de la base de connaissances.
 """
 import json
 import re
+from functools import lru_cache
+
+import yaml
 
 from app.knowledge import URGENCIES, Knowledge
 from app.text import contains_phrase, norm
@@ -59,6 +62,26 @@ AUDIO_HINT = (
     "câble, poteau, lampadaire, route, trou, ordures, égout, inondation, mairie, quartier, marché, "
     "ndox (eau), yoon (route), mbalit (ordures), fan (où), dafa (c'est), amul (il n'y a pas), yàqu (abîmé)."
 )
+
+TRANSCRIBE_PROMPT = """Transcris cet enregistrement mot pour mot. La personne parle {langue}.
+
+Règles :
+- Écris exactement ce qui est dit, dans la langue où c'est dit. Ne traduis rien.
+- Le wolof s'écrit en wolof, avec l'orthographe courante. Les mots dits en français restent en français.
+- N'ajoute rien, ne résume pas, ne corrige pas le sens. Si un passage est inaudible, écris [inaudible].
+- Si l'enregistrement ne contient pas de parole, réponds par une ligne vide.
+
+Contexte : un habitant du Sénégal signale un problème dans son quartier (eau, électricité, route,
+éclairage, ordures, assainissement).
+{lexique}{lieux}
+Réponds uniquement par la transcription, sans guillemets ni commentaire."""
+
+LANGUE_PARLEE = {
+    "wo": "wolof, parfois avec des mots français",
+    "fr": "français",
+    "en": "anglais",
+    None: "wolof, français ou anglais, souvent en mélangeant wolof et français",
+}
 
 URGENT_WORDS = ["danger", "dangereux", "cable tombe", "cable par terre", "etincelle", "feu", "accident",
                 "blesse", "enfant", "inondation", "inonde", "inondee"]
@@ -116,16 +139,66 @@ def _draft_for_prompt(draft: dict | None) -> str:
     return json.dumps(kept, ensure_ascii=False) if kept else "(aucun)"
 
 
+@lru_cache(maxsize=1)
+def lexique() -> dict:
+    """Mots et phrases wolof validés par l'équipe (data/lexique_wolof.yaml). Relu au redémarrage."""
+    try:
+        data = yaml.safe_load(settings.LEXIQUE_FILE.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return {"mots": [], "phrases": []}
+    mots = [m for m in data.get("mots") or [] if isinstance(m, dict) and m.get("wo")]
+    phrases = [str(x) for x in data.get("phrases") or [] if x]
+    return {"mots": mots[:120], "phrases": phrases[:30]}
+
+
+def transcription_prompt(lang_hint: str | None = None, gazetteer: Gazetteer | None = None) -> str:
+    lex = lexique()
+    bloc = ""
+    if lex["mots"]:
+        bloc += "\nVocabulaire wolof fréquent : " + ", ".join(
+            f"{m['wo']} ({m['fr']})" if m.get("fr") else str(m["wo"]) for m in lex["mots"]) + "."
+    if lex["phrases"]:
+        bloc += "\nExemples de phrases correctement écrites :\n" + "\n".join(f"- {x}" for x in lex["phrases"])
+    lieux = ""
+    if gazetteer is not None and gazetteer.zones:
+        lieux = ("\nNoms de lieux possibles, à n'écrire que s'ils sont réellement prononcés : "
+                 + ", ".join(z.name for z in gazetteer.zones) + ".")
+    return TRANSCRIBE_PROMPT.format(langue=LANGUE_PARLEE.get(lang_hint, LANGUE_PARLEE[None]),
+                                    lexique=bloc + "\n" if bloc else "", lieux=lieux + "\n" if lieux else "")
+
+
+def transcribe(llm, audio: bytes, mime_type: str = "audio/wav", lang_hint: str | None = None,
+               gazetteer: Gazetteer | None = None) -> str:
+    """Transcription seule du vocal. Renvoie "" si rien d'exploitable n'est entendu."""
+    raw = llm.generate([llm.audio_part(audio, mime_type), transcription_prompt(lang_hint, gazetteer)],
+                       temperature=0.0, timeout_s=settings.TIMEOUT_TRANSCRIBE_S,
+                       model=settings.GEMINI_ASR_MODEL or None)
+    text = re.sub(r"\s+", " ", (raw or "").strip().strip('"«»“”')).strip()
+    return "" if not re.sub(r"\[inaudible\]|[\W_]", "", text, flags=re.IGNORECASE) else text[:2000]
+
+
 def extract_llm(llm, knowledge: Knowledge, text: str | None = None, audio: bytes | None = None,
-                mime_type: str = "audio/wav", draft: dict | None = None) -> dict:
-    """Un seul appel : transcription (si audio) + langue + extraction."""
+                mime_type: str = "audio/wav", draft: dict | None = None, lang_hint: str | None = None,
+                gazetteer: Gazetteer | None = None) -> dict:
+    """Comprend un message. Un vocal est d'abord transcrit seul, puis compris comme un texte
+    (réglage TRANSCRIPTION_SEPAREE) ; sinon transcription et extraction se font dans le même appel."""
+    heard = None
+    if audio and settings.TRANSCRIPTION_SEPAREE:
+        heard = transcribe(llm, audio, mime_type, lang_hint, gazetteer)
+        if not heard:
+            return validate({}, knowledge)             # rien d'entendu : l'assistant demandera de répéter
+        text, audio = heard, None
     categories = "\n".join(f"- {c.id} : sous-catégories {', '.join(c.subcategories)}"
                            for c in knowledge.categories.values())
     prompt = (f"CATÉGORIES AUTORISÉES :\n{categories}\n\nBROUILLON EN COURS : {_draft_for_prompt(draft)}\n\n"
               f"DERNIER MESSAGE : {'[AUDIO JOINT]' if audio else text}")
+    if heard:
+        prompt += "\n\n(Ce message est la transcription automatique d'un vocal : elle peut contenir des fautes.)"
     contents = prompt
     if audio:
-        contents = [llm.audio_part(audio, mime_type), prompt + "\n\n" + AUDIO_HINT]
+        langue = LANGUE_PARLEE.get(lang_hint)
+        contents = [llm.audio_part(audio, mime_type), prompt + "\n\n" + AUDIO_HINT
+                    + (f" La personne a indiqué parler {langue}." if lang_hint and langue else "")]
     raw = llm.generate(contents, system=SYSTEM, json_mode=True, timeout_s=settings.TIMEOUT_UNDERSTAND_S)
     try:
         data = parse_json(raw)

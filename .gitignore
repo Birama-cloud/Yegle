@@ -9,3 +9,7 @@ data/*.sqlite
 data/*.sqlite-journal
 data/*.sqlite-wal
 data/*.sqlite-shm
+# Enregistrements d'évaluation : ce sont des voix, ils restent hors du dépôt.
+evaluation/audio/*
+!evaluation/audio/.gitkeep
+evaluation/resultats.json

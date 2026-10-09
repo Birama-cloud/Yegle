@@ -1,0 +1,30 @@
+# ============================================================================
+#  LEXIQUE WOLOF DE L'ÉCOUTE
+#  Donné au modèle avant chaque transcription d'un vocal, pour qu'il reconnaisse
+#  et écrive correctement le wolof des signalements.
+#
+#  C'est ici qu'un locuteur améliore l'écoute, sans toucher au code :
+#   - un mot est mal entendu ou mal écrit ? Ajoutez-le dans « mots » ;
+#   - une tournure revient souvent ? Ajoutez une phrase type dans « phrases ».
+#  Écrivez comme les gens écrivent vraiment, et gardez la même graphie partout.
+#  Après modification : relancez l'application.
+#
+#  ATTENTION : liste de départ, à relire et à compléter par un locuteur.
+# ============================================================================
+mots:
+  - {wo: ndox, fr: eau}
+  - {wo: ballë, fr: "jaillir, couler"}
+  - {wo: mbedd, fr: rue}
+  - {wo: yoon, fr: route}
+  - {wo: mbalit, fr: ordures}
+  - {wo: yàqu, fr: "abîmé, en panne"}
+  - {wo: amul, fr: "il n'y a pas"}
+  - {wo: dafa, fr: "c'est"}
+  - {wo: fii, fr: ici}
+  - {wo: fan, fr: où}
+  - {wo: mongui, fr: est en train de}
+  - {wo: courant, fr: électricité}
+  - {wo: lampadaire, fr: lampadaire}
+
+phrases:
+  - "Ndox mi mongui ballë ci mbedd mi, fii ci Grand-Yoff"

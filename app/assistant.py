@@ -72,12 +72,13 @@ class Assistant:
         return self.llm is None
 
     # ------------------------------------------------------------------ compréhension
-    def _extract(self, text, audio, mime_type, draft):
+    def _extract(self, text, audio, mime_type, draft, lang=None):
         from app.llm.client import LLMUnavailable
 
         if self.llm is not None:
             try:
-                return extract_llm(self.llm, self.knowledge, text, audio, mime_type, draft), None
+                return extract_llm(self.llm, self.knowledge, text, audio, mime_type, draft,
+                                   lang_hint=lang, gazetteer=self.gazetteer), None
             except LLMUnavailable as e:
                 if audio or not text:
                     return None, e
@@ -111,7 +112,7 @@ class Assistant:
         draft["asked"] = list(draft.get("asked") or [])
         fallback_lang = lang or draft.get("language") or "fr"
 
-        extraction, error = self._extract(text, audio, mime_type, draft)
+        extraction, error = self._extract(text, audio, mime_type, draft, lang)
         if error is not None:
             key = "quota" if getattr(error, "quota", False) else "error"
             return Turn("error", msg(key, fallback_lang), fallback_lang, draft)

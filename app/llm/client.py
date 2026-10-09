@@ -66,8 +66,10 @@ class LLMClient:
         return self.types.HttpOptions(timeout=int((timeout_s or settings.GEMINI_TIMEOUT_S) * 1000))
 
     def generate(self, contents, system: str | None = None, json_mode: bool = False,
-                 temperature: float = 0.1, timeout_s: float | None = None) -> str:
+                 temperature: float = 0.1, timeout_s: float | None = None, model: str | None = None) -> str:
+        """model : modèle à essayer en premier pour cet appel (les modèles habituels restent en secours)."""
         types = self.types
+        models = list(dict.fromkeys([model, *self.models])) if model else self.models
         config = types.GenerateContentConfig(
             system_instruction=system,
             temperature=temperature,
@@ -78,7 +80,7 @@ class LLMClient:
             http_options=self._http(timeout_s),
         )
         try:
-            resp = self._call(self.models, contents, config)
+            resp = self._call(models, contents, config)
             return (resp.text or "").strip()
         except LLMUnavailable as gemini_error:
             if not self.openai:

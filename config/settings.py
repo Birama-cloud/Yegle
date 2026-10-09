@@ -41,6 +41,15 @@ OPENAI_TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "whisper-1")
 GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
 GEMINI_TTS_VOICE = os.getenv("GEMINI_TTS_VOICE", "Kore")
 
+# Écoute du vocal. Par défaut, il est d'abord transcrit seul (consigne dédiée, lexique wolof de
+# data/lexique_wolof.yaml, langue choisie par le citoyen), puis compris comme un message écrit.
+# false = ancien fonctionnement : transcription et compréhension dans le même appel.
+TRANSCRIPTION_SEPAREE = _bool("TRANSCRIPTION_SEPAREE", True)
+# Modèle utilisé pour la seule transcription. Vide = le même que GEMINI_MODEL.
+GEMINI_ASR_MODEL = os.getenv("GEMINI_ASR_MODEL", "").strip()
+TIMEOUT_TRANSCRIBE_S = 25
+LEXIQUE_FILE = DATA_DIR / "lexique_wolof.yaml"
+
 # Mode de compréhension : "gemini" (voix + texte) ou "offline" (mots-clés, texte seulement).
 # Sans clé Gemini, l'application démarre en mode offline pour rester testable.
 LLM_MODE = os.getenv("LLM_MODE", "gemini" if GEMINI_API_KEY else "offline").strip().lower()
