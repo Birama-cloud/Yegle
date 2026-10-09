@@ -18,6 +18,14 @@ def knowledge():
 
 
 @pytest.fixture
+def unverified(knowledge):
+    """Base de connaissances dont aucune fiche n'a été vérifiée."""
+    for org in knowledge.organizations:
+        org.last_verified_at = None
+    return knowledge
+
+
+@pytest.fixture
 def verified(knowledge):
     """Base de connaissances dont toutes les fiches ont été vérifiées."""
     for org in knowledge.organizations:

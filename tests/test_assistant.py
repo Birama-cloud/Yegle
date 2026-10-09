@@ -54,8 +54,8 @@ def test_urgence_detectee(assistant):
     assert t.draft["category"] == "electricite" and t.draft["urgency"] == "high"
 
 
-def test_fiche_non_verifiee_rien_n_est_transmis(knowledge, gazetteer):
-    a = Assistant(llm=None, knowledge=knowledge, gazetteer=gazetteer, storage=Storage(":memory:"))
+def test_fiche_non_verifiee_rien_n_est_transmis(unverified, gazetteer):
+    a = Assistant(llm=None, knowledge=unverified, gazetteer=gazetteer, storage=Storage(":memory:"))
     t = a.analyze(None, text="Fuite d'eau à Ouakam")
     assert t.kind == "confirm" and "SEN'EAU" not in t.message
     assert a.submit(t.draft).report["status"] == "NEEDS_REVIEW"

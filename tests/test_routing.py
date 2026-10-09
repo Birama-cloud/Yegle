@@ -2,8 +2,8 @@ from app import routing
 from app.knowledge import Organization, Rule
 
 
-def test_fiche_non_verifiee_part_en_verification(knowledge, gazetteer):
-    d = routing.route(knowledge, "eau", "fuite_d_eau", gazetteer.get("grand-yoff"), 0.9)
+def test_fiche_non_verifiee_part_en_verification(unverified, gazetteer):
+    d = routing.route(unverified, "eau", "fuite_d_eau", gazetteer.get("grand-yoff"), 0.9)
     assert not d.ready and d.organization.org_name == "SEN'EAU"
     assert "non vérifiée" in d.justification
 

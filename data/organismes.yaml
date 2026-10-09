@@ -22,7 +22,11 @@
   territorial_coverage: ["region:dakar"]
   responsible_services:
     - {name: "Service compétent", subcategories: []}
-  contact_channels: []              # à compléter depuis la source officielle
+  # Fermier du service public de l'eau potable en zone urbaine (contrat d'affermage signé
+  # le 30/12/2019, en service depuis le 01/01/2020). Le site ne précise pas le périmètre exact.
+  contact_channels:
+    - {type: telephone, value: "800 001 111", note: "appel gratuit, 24h/24"}
+    - {type: whatsapp, value: "+221 78 935 51 51", note: "service client"}
   api_endpoint_if_available: null
   transmission_mode: internal_queue
   routing_rules:
@@ -30,8 +34,8 @@
   escalation_rules:
     - {when_urgency: [critical], action: notify_admin}
   active_status: true
-  last_verified_at: null
-  source_url: null
+  last_verified_at: "2026-10-09"
+  source_url: "https://www.seneau.sn"
 
 - organization_id: ORG_ONAS
   organization_name: "ONAS"
@@ -41,7 +45,11 @@
   territorial_coverage: ["region:dakar"]
   responsible_services:
     - {name: "Service compétent", subcategories: []}
-  contact_channels: []
+  # EPIC créé par la loi n° 96-02 du 22/02/1996, réorganisé par le décret n° 2023-1004 du 08/05/2023.
+  # Mission : assainissement collectif et autonome, eaux usées et pluviales, sur tout le territoire national.
+  contact_channels:
+    - {type: telephone, value: "81 800 10 12", note: "réclamations et urgences assainissement, 24h/24"}
+    - {type: email, value: "onas@onas.sn"}
   api_endpoint_if_available: null
   transmission_mode: internal_queue
   routing_rules:
@@ -49,8 +57,8 @@
   escalation_rules:
     - {when_urgency: [critical], action: notify_admin}
   active_status: true
-  last_verified_at: null
-  source_url: null
+  last_verified_at: "2026-10-09"
+  source_url: "https://www.onas.sn"
 
 - organization_id: ORG_SENELEC
   organization_name: "SENELEC"
@@ -60,7 +68,11 @@
   territorial_coverage: ["region:dakar"]
   responsible_services:
     - {name: "Service compétent", subcategories: []}
-  contact_channels: []
+  # Société à capitaux publics majoritaires, concessionnaire de la production, du transport
+  # et de la distribution d'électricité.
+  contact_channels:
+    - {type: telephone, value: "+221 33 867 66 66", note: "standard"}
+    - {type: email, value: "contact@senelec.sn"}
   api_endpoint_if_available: null
   transmission_mode: internal_queue
   routing_rules:
@@ -68,11 +80,19 @@
   escalation_rules:
     - {when_urgency: [critical], action: notify_admin}
   active_status: true
-  last_verified_at: null
-  source_url: null
+  last_verified_at: "2026-10-09"
+  source_url: "https://www.senelec.sn"
 
 # Une seule fiche pour toutes les mairies : le nom est complété avec la commune
 # du signalement. Sans commune identifiée, le signalement part en vérification.
+#
+# NON VÉRIFIÉE (contrôle du 2026-10-09) : la loi ne confie pas ces domaines à la commune seule.
+# - Propreté : déchets transférés à la ville (CGCL, loi 2013-10, art. 170) ; collecte assurée
+#   par la SONAGED sur tout le territoire (loi 2022-18 du 23/05/2022, art. 2).
+# - Éclairage public : extension du réseau confiée à la ville (art. 169) ; le maire en a la
+#   police dans les rues (art. 119).
+# - Voirie : la commune gère la voirie non classée (art. 299) ; la ville, les voies et places
+#   publiques (art. 169) ; la voirie classée relève de l'État.
 - organization_id: ORG_MAIRIE
   organization_name: "Mairie de {commune}"
   organization_type: collectivite_territoriale

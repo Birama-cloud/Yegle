@@ -6,8 +6,9 @@ def test_base_livree_est_coherente(knowledge):
     assert knowledge.validate() == []
 
 
-def test_fiches_livrees_ne_sont_pas_marquees_verifiees(knowledge):
-    assert not any(o.verified for o in knowledge.organizations)
+def test_fiche_verifiee_cite_sa_source(knowledge):
+    for o in knowledge.organizations:
+        assert not o.verified or str(o.source_url or "").startswith("https://"), o.id
 
 
 def test_validation_detecte_les_erreurs(knowledge):
