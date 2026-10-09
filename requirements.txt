@@ -1,11 +1,14 @@
-streamlit>=1.65
-google-genai>=1.0
-python-dotenv
-pyyaml
-httpx
-fastapi
-uvicorn
-python-multipart
-gTTS
-openai
-pytest
+# Dépendances de l'application, versions testées (Python 3.10 à 3.13).
+# Pour lancer les tests : pip install -r requirements-dev.txt
+streamlit==1.65.0
+pydeck==0.9.3
+fastapi==0.143.0
+uvicorn==0.54.0
+python-multipart==0.0.32
+pydantic==2.14.0
+google-genai==2.29.0
+openai==3.26.1
+gTTS==2.5.4
+httpx==0.28.1
+python-dotenv==1.2.4
+PyYAML==6.0.3

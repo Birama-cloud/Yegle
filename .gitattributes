@@ -1,0 +1,2 @@
+# Fins de ligne LF dans le dépôt et sur toutes les machines (évite les avertissements LF/CRLF sous Windows).
+* text=auto eol=lf

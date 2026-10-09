@@ -51,7 +51,7 @@ cd Yegle
 python -m venv .venv
 .venv\Scripts\activate           (Windows)
 source .venv/bin/activate        (Linux, macOS)
-pip install -r requirements.txt
+pip install -r requirements-dev.txt     (application et outils de test ; requirements.txt seul pour l'application)
 ```
 
 Copiez `.env.example` en `.env`, puis renseignez `GEMINI_API_KEY`, `DASHBOARD_PASSWORD` et `ADMIN_API_KEY`.
