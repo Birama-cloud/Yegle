@@ -43,8 +43,8 @@ Sans clé d'API, l'application fonctionne en **mode hors ligne** : compréhensio
 Python 3.10 ou plus récent.
 
 ```
-git clone https://github.com/VOTRE-COMPTE/yegle.git
-cd yegle
+git clone https://github.com/Birama-cloud/Yegle.git
+cd Yegle
 python -m venv .venv
 .venv\Scripts\activate           (Windows)
 source .venv/bin/activate        (Linux, macOS)
@@ -71,9 +71,9 @@ python -m scripts.demo --save    idem, en enregistrant (pour peupler le tableau 
 
 ## À faire avant la démonstration
 
-1. **Vérifier les fiches organismes.** Les compétences de `data/organismes.yaml` sont des hypothèses de départ, livrées sans date de vérification. Tant qu'une fiche n'est pas vérifiée, ses signalements passent en vérification humaine. Pour chaque organisme : contrôler la compétence sur une source officielle, remplir `source_url` et `last_verified_at`.
+1. **Fiches organismes.** SEN'EAU, ONAS, SENELEC, SONAGED et Ville de Dakar ont été vérifiées sur sources officielles le 2026-10-09 (`source_url` et `last_verified_at` dans `data/organismes.yaml`). Reste la fiche Mairie (voirie, infrastructure) : la voirie est partagée entre la commune, la ville et l'État selon le type de route, donc ces signalements passent en vérification humaine.
 2. **Faire relire le wolof** de `app/messages.py` par un locuteur.
-3. **Contrôler les coordonnées** des communes : `python -m scripts.verifier_zones`.
+3. **Coordonnées des communes** : contrôlées avec OpenStreetMap le 2026-10-09 (écart inférieur à 1 km). Après tout ajout de zone : `python -m scripts.verifier_zones`.
 
 ## Ajouter un organisme
 
