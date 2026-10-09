@@ -177,6 +177,9 @@ header[data-testid="stHeader"]{display:none;}
 .yg-panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; height:100%;}
 .yg-panel h4{font-family:var(--display); font-weight:600; font-size:1rem; margin:0 0 .6rem; padding:0; color:var(--indigo);}
 .yg-panel p{margin:.25rem 0; line-height:1.5;} .yg-panel p span{color:var(--muted);}
+/* carte : deck.gl place l'infobulle par rapport à ce conteneur, que Streamlit met sous la carte
+   (hauteur nulle) ; ramené en haut de la carte, l'infobulle apparaît sous le curseur */
+.stDeckGlJsonChart .deck-widgets-root{position:absolute; top:0; left:0; width:100%;}
 .yg-legend{display:flex; flex-wrap:wrap; gap:.4rem 1.1rem; margin:.6rem 0 .2rem; font-size:.88rem; color:var(--muted);}
 .yg-legend span{display:inline-flex; align-items:center; gap:.4rem;}
 .yg-legend i{width:.8rem; height:.8rem; border-radius:50%; display:inline-block;}
