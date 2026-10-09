@@ -69,6 +69,10 @@ RATE_TRACK_PER_MINUTE = int(os.getenv("RATE_TRACK_PER_MINUTE", "60"))
 # (Slack, Teams, passerelle SMS...). Vide = tableau de bord uniquement.
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "").strip()
 
+# Vie privée : le message d'origine du citoyen (transcription) est effacé ce nombre de jours
+# après la création du signalement. 0 = conservé sans limite.
+TRANSCRIPT_RETENTION_DAYS = int(os.getenv("TRANSCRIPT_RETENTION_DAYS", "90"))
+
 # Tableau de bord : échecs de connexion tolérés par adresse IP sur 15 minutes.
 LOGIN_MAX_FAILURES = int(os.getenv("LOGIN_MAX_FAILURES", "5"))
 

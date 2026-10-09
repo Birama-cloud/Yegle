@@ -1,26 +1,29 @@
 # Yëgle
 
-**Signalez un problème avec votre voix. Yëgle trouve le service qui doit s'en occuper.**
+**Dites le problème en wolof ou en français. Yëgle l'envoie au bon service.**
 
-Yëgle (« faire savoir » en wolof) est un assistant vocal open source de signalement citoyen. Le citoyen décrit un problème dans l'espace public, à l'oral, en français, en wolof ou en anglais. Le système comprend le problème, repère le lieu, détermine l'organisme compétent à partir d'une base de connaissances vérifiable, fait confirmer le citoyen, puis enregistre le signalement et le place dans la file du bon service.
+Yëgle (« faire savoir » en wolof) est un assistant vocal open source de signalement citoyen. Pas de formulaire, pas de catégorie à choisir, pas de carte : le citoyen parle, et le système s'occupe du reste.
+
+*« Ndox mi mongui ballë ci mbedd mi, fii ci Grand-Yoff »* devient un signalement de fuite d'eau, localisé à Grand-Yoff et orienté vers le service de l'eau.
 
 Projet réalisé pour le **Open Source × AI Hackathon 2026** de Galsen DEV, track *Civic Tech & services publics*.
 
 ## Le problème
 
-Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen voit le problème mais ne sait pas à qui s'adresser. Mairie, ONAS, SENELEC, SEN'EAU ? Les plateformes de signalement existantes lui demandent de remplir un formulaire, de choisir une catégorie et de placer un point sur une carte, ce qui écarte ceux qui lisent peu ou qui s'expriment d'abord en wolof.
+Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen voit le problème, mais ne sait pas à qui s'adresser. Mairie, ONAS, SENELEC, SEN'EAU ? La plupart des plateformes de signalement lui demandent de remplir un formulaire, de choisir une catégorie et de placer un point sur une carte. Cela écarte ceux qui lisent peu ou qui s'expriment d'abord en wolof.
 
 ## La solution
 
 1. Le citoyen appuie sur le micro et parle.
-2. L'IA transcrit et extrait le problème, sa catégorie, le lieu dit et l'urgence.
-3. Le lieu est rapproché d'un répertoire de communes. Rien n'est inventé : s'il manque, l'assistant pose une seule question.
-4. Le **moteur d'orientation** croise catégorie et zone avec la base des organismes et calcule une confiance.
+2. L'IA transcrit et extrait le problème, sa catégorie, le lieu et l'urgence.
+3. Le lieu est rapproché d'un répertoire de communes. S'il manque, l'assistant pose une seule question.
+4. Le moteur d'orientation croise la catégorie et la zone avec la base des organismes, et calcule une confiance.
 5. Le citoyen entend un résumé et confirme.
-6. Le signalement est enregistré, placé dans la file de l'organisme, et une référence de suivi est donnée.
-7. Si la confiance est insuffisante, le signalement part en **vérification humaine** au lieu d'être envoyé au mauvais service.
+6. Le signalement est enregistré et placé dans la file de l'organisme. Le citoyen reçoit une référence de suivi.
 
-Un tableau de bord central permet de filtrer, suivre, corriger l'organisme et consulter tout l'historique.
+**En cas de doute, rien n'est envoyé au hasard.** Si la confiance est insuffisante, le signalement passe par une vérification humaine plutôt que d'arriver au mauvais service.
+
+Un tableau de bord central permet de filtrer les signalements, de les suivre, de corriger l'organisme et de consulter tout l'historique.
 
 ## Utilisation de l'IA
 
@@ -71,9 +74,9 @@ python -m scripts.demo --save    idem, en enregistrant (pour peupler le tableau 
 
 ## À faire avant la démonstration
 
-1. **Fiches organismes.** SEN'EAU, ONAS, SENELEC, SONAGED et Ville de Dakar ont été vérifiées sur sources officielles le 2026-10-09 (`source_url` et `last_verified_at` dans `data/organismes.yaml`). Reste la fiche Mairie (voirie, infrastructure) : la voirie est partagée entre la commune, la ville et l'État selon le type de route, donc ces signalements passent en vérification humaine.
+1. **Vérifier les fiches organismes.** Les compétences de `data/organismes.yaml` sont des hypothèses de départ, livrées sans date de vérification. Tant qu'une fiche n'est pas vérifiée, ses signalements passent en vérification humaine. Pour chaque organisme : contrôler la compétence sur une source officielle, remplir `source_url` et `last_verified_at`.
 2. **Faire relire le wolof** de `app/messages.py` par un locuteur.
-3. **Coordonnées des communes** : contrôlées avec OpenStreetMap le 2026-10-09 (écart inférieur à 1 km). Après tout ajout de zone : `python -m scripts.verifier_zones`.
+3. **Contrôler les coordonnées** des communes : `python -m scripts.verifier_zones`.
 
 ## Ajouter un organisme
 
@@ -106,8 +109,6 @@ docs/ARCHITECTURE.md      architecture, modèle de données, API, sécurité, é
 - Aucun nom ni numéro de téléphone n'est demandé.
 - Le suivi public n'affiche que le statut, la catégorie, l'organisme et les dates.
 - L'organisme est recalculé par le serveur à l'envoi ; une valeur venue du client est ignorée.
-- Le brouillon échangé avec l'API est signé par le serveur : un client ne peut pas modifier la catégorie, la description, le lieu ou la confiance.
-- Débit limité par adresse IP (analyses, signalements, suivi) et connexion au tableau de bord bloquée 15 minutes après 5 échecs.
 - La destination d'une transmission vient uniquement de la base de connaissances.
 - Chaque décision d'orientation et chaque correction manuelle est tracée avec son auteur.
 

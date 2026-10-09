@@ -6,6 +6,7 @@ Au moment de l'envoi, tout est recalculé côté serveur (zone, organisme) : on 
 jamais confiance à un organisme ou à un niveau de confiance venu du client.
 """
 import logging
+import time
 from dataclasses import dataclass, field
 
 from app import alerts, routing, transmission
@@ -19,6 +20,7 @@ from config import settings
 log = logging.getLogger(__name__)
 MAX_PROBLEM_QUESTIONS = 2
 MAX_TRANSCRIPT = 8000         # on garde la fin de la conversation au-delà
+PURGE_EVERY_S = 3600
 FINAL_STATUSES = ("RESOLVED", "CLOSED", "REJECTED")
 
 
@@ -47,11 +49,23 @@ class Assistant:
         self.gazetteer = gazetteer or Gazetteer.load()
         self.storage = storage or Storage()
         self.storage.recover_interrupted()       # arrêt pendant une transmission : rien ne reste en suspens
+        self._last_purge = None
+        self.purge_if_due()
         self.llm = llm
         if llm is None and settings.LLM_MODE == "gemini":
             from app.llm.client import LLMClient
 
             self.llm = LLMClient()
+
+    def purge_if_due(self) -> None:
+        """Efface les transcriptions arrivées en fin de conservation, au plus une fois par heure."""
+        if self._last_purge is not None and time.monotonic() - self._last_purge < PURGE_EVERY_S:
+            return
+        self._last_purge = time.monotonic()
+        try:
+            self.storage.purge_transcripts(settings.TRANSCRIPT_RETENTION_DAYS)
+        except Exception:  # noqa: BLE001  (l'effacement sera retenté plus tard)
+            log.exception("Effacement des transcriptions impossible")
 
     @property
     def offline(self) -> bool:
@@ -193,6 +207,7 @@ class Assistant:
         if draft.get("subcategory") not in self.knowledge.categories[draft["category"]].subcategories:
             draft["subcategory"] = None
 
+        self.purge_if_due()
         decision = self._route(draft)
         with self.storage.transaction():       # jamais un signalement « Reçu » sans suite s'il part en vérification
             report = self.storage.create_report(draft, decision)

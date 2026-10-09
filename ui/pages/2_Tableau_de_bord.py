@@ -194,7 +194,13 @@ d2.markdown(
     + "</div>",
     unsafe_allow_html=True)
 with st.expander("Message d'origine du citoyen"):
-    st.text(report["transcript"] or "")
+    if report["transcript_purged_at"]:
+        st.caption(f"Effacé le {when(report['transcript_purged_at'])}, à la fin de la durée de conservation "
+                   f"({settings.TRANSCRIPT_RETENTION_DAYS} jours).")
+    else:
+        st.text(report["transcript"] or "")
+        if settings.TRANSCRIPT_RETENTION_DAYS > 0:
+            st.caption(f"Effacé automatiquement {settings.TRANSCRIPT_RETENTION_DAYS} jours après le signalement.")
 
 a1, a2 = st.columns(2)
 with a1.form("status"):

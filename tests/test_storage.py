@@ -83,6 +83,67 @@ def test_erreur_dans_une_ecriture_tout_est_annule():
     assert storage.get(ref)["status"] == "NEEDS_REVIEW"
 
 
+def _vieillir(storage, ref, date="2026-01-01T00:00:00+00:00"):
+    with storage.transaction():
+        storage.db.execute("UPDATE reports SET created_at = ? WHERE reference = ?", (date, ref))
+
+
+def test_effacement_des_transcriptions_anciennes():
+    storage = Storage(":memory:")
+    old = storage.create_report({**DRAFT, "transcript": "Fuite devant chez Awa, 77 000 00 00"}, DECISION)["reference"]
+    recent = storage.create_report({**DRAFT, "transcript": "Fuite rue 10"}, DECISION)["reference"]
+    _vieillir(storage, old)
+
+    assert storage.purge_transcripts(90) == 1
+    assert storage.get(old)["transcript"] is None and storage.get(old)["transcript_purged_at"]
+    assert storage.get(old)["description"] == "Fuite"                 # description neutre conservée
+    assert storage.get(recent)["transcript"] == "Fuite rue 10"
+    assert storage.purge_transcripts(90) == 0                         # une seule fois
+    assert storage.purge_transcripts(0) == 0                          # 0 = conservation sans limite
+
+
+def test_message_envoye_tel_quel_description_effacee_aussi():
+    storage = Storage(":memory:")
+    words = "Un chien mort devant chez Moussa Diop"
+    ref = storage.create_report({**DRAFT, "category": "autre", "description": words, "transcript": words,
+                                 "confidence_problem": 0.0}, DECISION)["reference"]
+    _vieillir(storage, ref)
+    storage.purge_transcripts(90)
+    assert "Moussa" not in storage.get(ref)["description"] and "effacé" in storage.get(ref)["description"]
+
+
+def test_effacement_au_demarrage(verified, gazetteer, tmp_path):
+    from app.assistant import Assistant
+
+    path = tmp_path / "base.sqlite"
+    storage = Storage(path)
+    ref = storage.create_report({**DRAFT, "transcript": "Fuite"}, DECISION)["reference"]
+    _vieillir(storage, ref)
+    Assistant(llm=None, knowledge=verified, gazetteer=gazetteer, storage=Storage(path))
+    assert storage.get(ref)["transcript"] is None
+
+
+def test_ancienne_base_migree_sans_perte(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "ancienne.sqlite"
+    old = sqlite3.connect(path)
+    old.executescript("""CREATE TABLE reports (id INTEGER PRIMARY KEY AUTOINCREMENT, reference TEXT UNIQUE NOT NULL,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, status TEXT NOT NULL, category TEXT NOT NULL,
+        subcategory TEXT, description TEXT NOT NULL, transcript TEXT, location_text TEXT, zone_id TEXT,
+        territorial_area TEXT, latitude REAL, longitude REAL, urgency TEXT NOT NULL, language TEXT NOT NULL,
+        source TEXT NOT NULL, confidence_problem REAL, confidence_location REAL, org_id TEXT, org_name TEXT,
+        org_service TEXT, confidence_organization REAL, routing_status TEXT NOT NULL);
+        INSERT INTO reports (reference, created_at, updated_at, status, category, description, transcript, urgency,
+        language, source, routing_status) VALUES ('YGL-260101-AAAAAA', '2026-01-01T00:00:00+00:00',
+        '2026-01-01T00:00:00+00:00', 'ROUTED', 'eau', 'Fuite', 'Message', 'medium', 'fr', 'text', 'x');""")
+    old.close()
+
+    storage = Storage(path)
+    assert storage.get("YGL-260101-AAAAAA")["transcript"] == "Message"
+    assert storage.purge_transcripts(90) == 1 and storage.get("YGL-260101-AAAAAA")["transcript"] is None
+
+
 def test_journal_wal_sur_fichier(tmp_path):
     storage = Storage(tmp_path / "base.sqlite")
     assert storage._query("PRAGMA journal_mode")[0]["journal_mode"] == "wal"

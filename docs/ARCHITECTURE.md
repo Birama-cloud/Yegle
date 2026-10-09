@@ -80,7 +80,9 @@ Une fiche d'organisme dans `data/organismes.yaml` :
 
 ## Modèle de données
 
-- `reports` : référence, dates, statut, catégorie, description, transcription, lieu dit, zone, coordonnées GPS si fournies, urgence, langue, source, trois confiances, organisme, statut d'orientation.
+- `reports` : référence, dates, statut, catégorie, description, transcription, lieu dit, zone, coordonnées GPS si fournies, urgence, langue, source, trois confiances, organisme, statut d'orientation, date d'effacement de la transcription.
+
+La transcription (les mots exacts du citoyen, qui peuvent contenir un nom ou un numéro) est effacée `TRANSCRIPT_RETENTION_DAYS` jours après la création du signalement (90 par défaut, 0 = sans limite), au démarrage puis au plus une fois par heure. Pour un message envoyé tel quel, la description est faite des mêmes mots : elle est effacée aussi. La date d'effacement est conservée et affichée dans le tableau de bord.
 - `routing_decisions` : une ligne par décision, automatique ou manuelle, avec auteur, règle, justification et candidats.
 - `status_history` : chaque changement de statut, avec auteur et note.
 - `transmissions` : date, canal, destinataire, résultat, erreur.

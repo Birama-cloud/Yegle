@@ -30,6 +30,7 @@ TRANSITIONS = {
     "REJECTED": set(),
 }
 ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"   # sans caractères ambigus (0/O, 1/I/L)
+PURGED = "[Message du citoyen effacé après la durée de conservation]"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS reports (
@@ -44,7 +45,8 @@ CREATE TABLE IF NOT EXISTS reports (
   urgency TEXT NOT NULL, language TEXT NOT NULL, source TEXT NOT NULL,
   confidence_problem REAL, confidence_location REAL,
   org_id TEXT, org_name TEXT, org_service TEXT, confidence_organization REAL,
-  routing_status TEXT NOT NULL
+  routing_status TEXT NOT NULL,
+  transcript_purged_at TEXT
 );
 CREATE TABLE IF NOT EXISTS routing_decisions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,6 +101,9 @@ class Storage:
         with self._write():
             for statement in filter(str.strip, SCHEMA.split(";")):
                 self.db.execute(statement)
+            # Bases créées avant l'effacement des transcriptions : colonne ajoutée sans perte.
+            if "transcript_purged_at" not in {c["name"] for c in self._query("PRAGMA table_info(reports)")}:
+                self.db.execute("ALTER TABLE reports ADD COLUMN transcript_purged_at TEXT")
 
     @contextmanager
     def _write(self):
@@ -235,6 +240,23 @@ class Storage:
             self.db.execute("INSERT INTO status_history (report_id, changed_at, old_status, new_status, actor, note)"
                             " VALUES (?,?,?,?,?,?)", (r["id"], t, r["status"], new_status, actor, note))
             return self.get(reference)
+
+    def purge_transcripts(self, older_than_days: int) -> int:
+        """Efface le message d'origine des signalements créés il y a plus de N jours.
+        Pour un message envoyé tel quel (catégorie « autre », problème non compris), la description
+        est faite des mots du citoyen : elle est effacée aussi. Renvoie le nombre de signalements."""
+        if older_than_days <= 0:
+            return 0
+        cutoff = datetime.fromtimestamp(datetime.now(timezone.utc).timestamp() - older_than_days * 86400,
+                                        timezone.utc).isoformat(timespec="seconds")
+        with self._write():
+            t = now()
+            cur = self.db.execute(
+                "UPDATE reports SET transcript = NULL, transcript_purged_at = ?,"
+                " description = CASE WHEN category = 'autre' AND COALESCE(confidence_problem, 0) = 0"
+                "   THEN ? ELSE description END"
+                " WHERE created_at < ? AND transcript_purged_at IS NULL", (t, PURGED, cutoff))
+            return cur.rowcount
 
     def recover_interrupted(self, older_than_s: int = 600) -> list[str]:
         """Signalements restés « Reçu » (arrêt pendant une transmission) : passés en vérification."""
