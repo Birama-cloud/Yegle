@@ -127,6 +127,7 @@ En mode hors ligne (mots-clés), l'urgence ne dépasse jamais « élevée » : s
 | Audio inaudible | L'assistant demande de répéter ou d'écrire |
 | Réponse du modèle illisible ou hors liste | Valeurs rejetées, question de clarification |
 | Message hors sujet | Rappel de ce que fait le service |
+| Problème toujours incompris après deux questions | Proposition d'envoyer le message tel quel (catégorie « autre », lieu retrouvé dans la conversation), vérification humaine ; le citoyen confirme ou annule |
 | Lieu absent | Une question, une seule fois |
 | Lieu trop large ou inconnu | Une demande de précision, puis vérification humaine |
 | Organisme introuvable, plusieurs possibles, confiance faible | Vérification humaine, aucun nom annoncé |

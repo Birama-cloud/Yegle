@@ -29,6 +29,62 @@ def test_un_seul_message_suffit_si_le_lieu_est_dit(assistant):
     assert t.kind == "confirm" and "Ville de Dakar" in t.message
 
 
+def _incompris(assistant, *texts):
+    turn = None
+    for text in texts:
+        turn = assistant.analyze(turn.draft if turn else None, text=text)
+    return turn
+
+
+def test_probleme_incompris_porte_de_sortie_apres_deux_questions(assistant):
+    t2 = _incompris(assistant, "Un chien mort pourrit devant le marché de Ouakam", "Un cadavre d'animal")
+    assert t2.kind == "clarify"
+    t3 = assistant.analyze(t2.draft, text="C'est un animal mort")
+    assert t3.kind == "confirm" and t3.message.startswith("Je n'ai pas bien compris")
+    assert t3.draft["category"] == "autre" and t3.draft["location_text"] == "Ouakam"      # lieu du 1er message
+    assert "chien mort" in t3.draft["description"] and "animal mort" in t3.draft["description"]
+    assert t3.decision["status"] == "organization_to_verify"
+
+    done = assistant.submit(t3.draft)
+    assert done.report["status"] == "NEEDS_REVIEW" and done.report["category"] == "autre"
+
+
+def test_porte_de_sortie_description_suit_le_citoyen_puis_vraie_categorie(assistant):
+    t3 = _incompris(assistant, "Un chien mort à Ouakam", "Un cadavre", "C'est un animal")
+    t4 = assistant.analyze(t3.draft, text="Il sent très fort")
+    assert t4.kind == "confirm" and "sent très fort" in t4.draft["description"]
+    assert not t4.message.startswith("Je n'ai pas bien compris")              # dit une seule fois
+    t5 = assistant.analyze(t4.draft, text="En fait ce sont des ordures")
+    assert t5.draft["category"] == "proprete" and "SONAGED" in t5.message
+
+
+def test_porte_de_sortie_sans_lieu_demande_le_lieu(assistant):
+    t3 = _incompris(assistant, "Un chien mort", "Un cadavre", "Un animal")
+    assert t3.kind == "clarify" and t3.message.startswith("Je n'ai pas bien compris")
+    assert "Où se trouve" in t3.message
+    t4 = assistant.analyze(t3.draft, text="À Médina")
+    assert t4.kind == "confirm" and t4.draft["category"] == "autre" and "Médina" in t4.message
+
+
+def test_porte_de_sortie_sans_aucun_mot_redemande(assistant):
+    t3 = _incompris(assistant, "   ", "  ", " ")
+    assert t3.kind == "clarify" and t3.draft["category"] is None
+
+
+def test_porte_de_sortie_par_l_api_avec_brouillon_signe(assistant, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from api import main
+    monkeypatch.setattr(main, "get_assistant", lambda: assistant)
+    client, r = TestClient(main.app), None
+    for text in ("Un chien mort à Ouakam", "Un cadavre", "Un animal"):
+        body = {"text": text, **({"draft": r["draft"], "draft_token": r["draft_token"]} if r else {})}
+        r = client.post("/api/analyze", json=body).json()
+    assert r["kind"] == "confirm" and r["draft"]["category"] == "autre"
+    created = client.post("/api/reports", json={"draft": r["draft"], "draft_token": r["draft_token"]})
+    assert created.status_code == 201
+
+
 def test_message_hors_sujet(assistant):
     t = assistant.analyze(None, text="Bonjour, quel temps fait-il ?")
     assert t.kind == "clarify" and "signaler un problème" in t.message and t.draft["category"] is None

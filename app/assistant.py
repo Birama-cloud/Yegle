@@ -124,28 +124,34 @@ class Assistant:
                 draft["urgency"] = extraction["urgency"]
                 draft["confidence_problem"] = extraction["confidence_problem"]
 
-        # 1. Le problème est-il compris ?
-        if not draft["category"] or not draft["description"]:
-            asked = draft["asked"].count("problem")
-            if asked < MAX_PROBLEM_QUESTIONS:     # au-delà, la réponse ne change plus
-                draft["asked"].append("problem")
+        # 1. Le problème est-il compris ? Deux questions au plus, puis une porte de sortie :
+        # proposer d'envoyer le message tel quel à l'équipe, plutôt que de redemander sans fin.
+        intro = ""
+        understood = draft["category"] and draft["description"]
+        asked = draft["asked"].count("problem")
+        if not understood and asked < MAX_PROBLEM_QUESTIONS:
+            draft["asked"].append("problem")
             key = "not_report" if asked == 0 else "ask_problem"
-            if asked >= MAX_PROBLEM_QUESTIONS:
-                key = "not_report"
             return Turn("clarify", msg(key, language), language, draft, heard=heard)
+        as_is = asked >= MAX_PROBLEM_QUESTIONS and draft["category"] == "autre" and not draft["confidence_problem"]
+        if not understood or as_is:             # tant que rien n'est compris, la description suit le citoyen
+            if not self._as_is(draft):          # rien d'exploitable à transmettre
+                return Turn("clarify", msg("ask_problem", language), language, draft, heard=heard)
+            if not understood:
+                intro = msg("not_understood", language) + " "
 
         # 2. Le lieu est-il connu ? Une seule question à la fois, jamais deux fois la même.
         zone = self._locate(draft)
         has_gps = draft.get("latitude") is not None
         if not draft["location_text"] and not has_gps and "location" not in draft["asked"]:
             draft["asked"].append("location")
-            return Turn("clarify", msg("ask_location", language), language, draft, heard=heard)
+            return Turn("clarify", intro + msg("ask_location", language), language, draft, heard=heard)
         # La commune n'est demandée que si elle peut changer l'orientation : inutile pour un
         # organisme qui couvre déjà la zone sans dépendre de la commune (ex. SONAGED).
         decision = self._route(draft)
         if not (zone and zone.is_commune) and not decision.ready and "commune" not in draft["asked"]:
             draft["asked"].append("commune")
-            return Turn("clarify", msg("ask_commune", language), language, draft, heard=heard)
+            return Turn("clarify", intro + msg("ask_commune", language), language, draft, heard=heard)
 
         # 3. Résumé à confirmer.
         place = draft["location_text"] or draft["territorial_area"] or msg("unknown_place", language)
@@ -157,7 +163,22 @@ class Assistant:
             text_out = msg("summary_review", language, description=description.rstrip("."), place=place)
         if draft["urgency"] == "critical":
             text_out += " " + msg("emergency", language)
-        return Turn("confirm", text_out, language, draft, decision.to_dict(), heard=heard)
+        return Turn("confirm", intro + text_out, language, draft, decision.to_dict(), heard=heard)
+
+    def _as_is(self, draft: dict) -> bool:
+        """Problème non compris après deux questions : les mots du citoyen deviennent la description,
+        en catégorie « autre », donc en vérification humaine. Le citoyen confirme ou annule.
+        Renvoie False s'il n'y a aucun mot à transmettre."""
+        words = " / ".join(line.strip() for line in draft["transcript"].splitlines() if line.strip())
+        if not words:
+            return False
+        draft["category"], draft["subcategory"] = "autre", None
+        draft["description"] = draft["description_user"] = words[:300] or None
+        draft["confidence_problem"] = 0.0
+        if not draft["location_text"]:          # le lieu a pu être dit avant que le problème soit compris
+            zone, _ = self.gazetteer.resolve(draft["transcript"])
+            draft["location_text"] = zone.name if zone else None
+        return True
 
     # ------------------------------------------------------------------ confirmation du citoyen
     def submit(self, draft: dict) -> Turn:

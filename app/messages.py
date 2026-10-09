@@ -18,6 +18,13 @@ MESSAGES = {
         "en": "I help report problems in public spaces: water, electricity, roads, street lighting, waste "
               "or sanitation. What problem would you like to report?",
     },
+    "not_understood": {
+        "fr": "Je n'ai pas bien compris le problème. Je peux transmettre votre message tel quel à notre équipe, "
+              "qui l'examinera.",
+        "wo": "Xamuma bu baax jafe-jafe bi. Mën naa yónnee sa kàddu ni mu mel ci sunu équipe, ñu seet ko.",
+        "en": "I didn't fully understand the problem. I can pass your message on as it is to our team, "
+              "who will look into it.",
+    },
     "ask_location": {
         "fr": "Où se trouve le problème exactement ? Dites-moi le quartier ou la commune.",
         "wo": "Fan la jafe-jafe bi nekk ? Wax ma gox bi walla commune bi.",
