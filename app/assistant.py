@@ -7,7 +7,7 @@ jamais confiance à un organisme ou à un niveau de confiance venu du client.
 """
 from dataclasses import dataclass, field
 
-from app import routing, transmission
+from app import alerts, routing, transmission
 from app.knowledge import Knowledge
 from app.messages import msg
 from app.storage import Storage, StorageError
@@ -175,6 +175,7 @@ class Assistant:
         if not decision.ready:
             self.storage.set_status(report["reference"], "NEEDS_REVIEW", "system", decision.justification)
         report = self.storage.get(report["reference"])
+        alerts.escalate(self.storage, self.knowledge, report)
         if sent:
             text_out = msg("done_routed", language, org=report["org_name"], ref=report["reference"])
         else:

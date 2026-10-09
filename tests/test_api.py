@@ -110,6 +110,19 @@ def test_brouillon_sans_signature_ou_d_un_autre_echange_refuse(client):
     assert client.post("/api/reports", json={"draft": a["draft"], "draft_token": a["draft_token"]}).status_code == 201
 
 
+def test_alertes_par_l_api(client, assistant):
+    assistant.submit({"category": "electricite", "description": "Câble tombé", "location_text": "Médina",
+                      "urgency": "critical", "confidence_problem": 0.9})
+    assert client.get("/api/admin/alerts").status_code == 401
+    [alert] = client.get("/api/admin/alerts", headers=ADMIN).json()
+    url = f"/api/admin/alerts/{alert['id']}/acknowledge"
+    assert client.post(url, headers=ADMIN).json()["acknowledged_by"] == "admin:api"
+    assert client.post(url, headers=ADMIN).status_code == 409
+    assert client.post("/api/admin/alerts/999/acknowledge", headers=ADMIN).status_code == 404
+    assert client.get("/api/admin/alerts", headers=ADMIN).json() == []
+    assert len(client.get("/api/admin/alerts?include_acknowledged=true", headers=ADMIN).json()) == 1
+
+
 def test_administration_protegee(client, monkeypatch):
     assert client.get("/api/admin/reports").status_code == 401
     assert client.get("/api/admin/reports", headers={"X-API-Key": "faux"}).status_code == 401

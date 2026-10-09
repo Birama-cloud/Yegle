@@ -12,6 +12,8 @@
 #
 #  territorial_coverage : national | region:<id> | departement:<id> | zone:<id>
 #  transmission_mode    : internal_queue | webhook (exige api_endpoint_if_available en https)
+#  escalation_rules     : [{when_urgency: [high, critical], action: notify_admin}] déclenche une alerte
+#                         d'urgence. L'urgence « critical » alerte toujours, même sans règle.
 # ============================================================================
 
 - organization_id: ORG_SENEAU

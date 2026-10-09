@@ -65,6 +65,13 @@ CREATE TABLE IF NOT EXISTS transmissions (
   sent_at TEXT NOT NULL, channel TEXT NOT NULL, recipient TEXT,
   success INTEGER NOT NULL, error TEXT
 );
+CREATE TABLE IF NOT EXISTS alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id INTEGER NOT NULL UNIQUE REFERENCES reports(id),
+  created_at TEXT NOT NULL, reason TEXT NOT NULL,
+  notified INTEGER NOT NULL DEFAULT 0, notify_error TEXT,
+  acknowledged_at TEXT, acknowledged_by TEXT
+);
 """
 
 
@@ -196,7 +203,8 @@ class Storage:
                 return self._query(f"SELECT * FROM {table} WHERE report_id = ? ORDER BY {order}, id", (r["id"],))
 
             return {"routing": rows("routing_decisions", "decided_at"),
-                    "statuses": rows("status_history", "changed_at"), "transmissions": rows("transmissions", "sent_at")}
+                    "statuses": rows("status_history", "changed_at"), "transmissions": rows("transmissions", "sent_at"),
+                    "alerts": rows("alerts", "created_at")}
 
     def stats(self) -> dict:
         with self._lock:
@@ -238,6 +246,43 @@ class Storage:
             self._log_decision(r["id"], actor, org_id, org_name, 1.0, None, "ready_for_transmission",
                                f"Orientation manuelle : {reason.strip()}")
             return self.get(reference)
+
+    # ------------------------------------------------------------------ alertes
+    def add_alert(self, reference: str, reason: str) -> dict | None:
+        """Une alerte par signalement au plus. Renvoie None si elle existait déjà."""
+        with self._write():
+            r = self._require(reference)
+            cur = self.db.execute("INSERT OR IGNORE INTO alerts (report_id, created_at, reason) VALUES (?,?,?)",
+                                  (r["id"], now(), reason))
+            return self.get_alert(cur.lastrowid) if cur.rowcount else None
+
+    def set_alert_notified(self, alert_id: int, ok: bool, error: str | None = None) -> None:
+        with self._write():
+            self.db.execute("UPDATE alerts SET notified = ?, notify_error = ? WHERE id = ?",
+                            (int(ok), error, alert_id))
+
+    def acknowledge_alert(self, alert_id: int, actor: str) -> dict:
+        """Prise en charge par un administrateur, tracée. Une seule fois par alerte."""
+        with self._write():
+            alert = self.get_alert(alert_id)
+            if not alert:
+                raise StorageError("Alerte introuvable")
+            if alert["acknowledged_at"]:
+                raise StorageError(f"Alerte déjà prise en charge par {alert['acknowledged_by']}")
+            self.db.execute("UPDATE alerts SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?",
+                            (now(), actor, alert_id))
+            return self.get_alert(alert_id)
+
+    _ALERTS = ("SELECT a.*, r.reference, r.category, r.urgency, r.status, r.location_text, r.territorial_area,"
+               " r.org_name, r.description FROM alerts a JOIN reports r ON r.id = a.report_id")
+
+    def get_alert(self, alert_id: int) -> dict | None:
+        rows = self._query(self._ALERTS + " WHERE a.id = ?", (alert_id,))
+        return rows[0] if rows else None
+
+    def list_alerts(self, open_only: bool = True) -> list[dict]:
+        where = " WHERE a.acknowledged_at IS NULL" if open_only else ""
+        return self._query(self._ALERTS + where + " ORDER BY a.created_at DESC, a.id DESC")
 
     def add_transmission(self, reference: str, channel: str, recipient: str | None, success: bool,
                          error: str | None = None) -> None:

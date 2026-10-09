@@ -217,6 +217,23 @@ def admin_reroute(reference: str, body: RerouteIn, actor: str = Depends(require_
         raise HTTPException(409, str(e)) from e
 
 
+@app.get("/api/admin/alerts")
+def admin_alerts(include_acknowledged: bool = False, _: str = Depends(require_admin)):
+    """Alertes d'urgence, les plus récentes d'abord. Par défaut, celles qui attendent une prise en charge."""
+    return get_assistant().storage.list_alerts(open_only=not include_acknowledged)
+
+
+@app.post("/api/admin/alerts/{alert_id}/acknowledge")
+def admin_acknowledge(alert_id: int, actor: str = Depends(require_admin)):
+    storage = get_assistant().storage
+    if not storage.get_alert(alert_id):
+        raise HTTPException(404, "Alerte introuvable")
+    try:
+        return storage.acknowledge_alert(alert_id, actor)
+    except StorageError as e:
+        raise HTTPException(409, str(e)) from e
+
+
 @app.get("/api/admin/organizations")
 def admin_organizations(_: str = Depends(require_admin)):
     return [{"id": o.id, "name": o.name, "type": o.type, "domains": o.domains, "coverage": o.coverage,

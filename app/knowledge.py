@@ -9,6 +9,8 @@ from config import settings
 
 COVERAGE_PREFIXES = ("region:", "departement:", "zone:")
 TRANSMISSION_MODES = ("internal_queue", "webhook")
+ESCALATION_ACTIONS = ("notify_admin",)
+URGENCIES = ("low", "medium", "high", "critical")
 
 
 @dataclass
@@ -132,6 +134,11 @@ class Knowledge:
                     date.fromisoformat(o.last_verified_at)
                 except ValueError:
                     errors.append(f"{where} : last_verified_at doit être au format AAAA-MM-JJ")
+            for e in o.escalation_rules:
+                if not isinstance(e, dict) or e.get("action") not in ESCALATION_ACTIONS:
+                    errors.append(f"{where} : escalation_rules, action inconnue (attendu : notify_admin)")
+                elif not set(e.get("when_urgency") or []) <= set(URGENCIES) or not e.get("when_urgency"):
+                    errors.append(f"{where} : escalation_rules, when_urgency doit lister {', '.join(URGENCIES)}")
             for r in o.rules:
                 if r.rule_id in seen_rules:
                     errors.append(f"{where} : règle en double '{r.rule_id}'")

@@ -65,6 +65,10 @@ DRAFT_SECRET = os.getenv("DRAFT_SECRET", "") or secrets.token_hex(32)
 RATE_ANALYZE_PER_MINUTE = int(os.getenv("RATE_ANALYZE_PER_MINUTE", "20"))
 RATE_REPORTS_PER_HOUR = int(os.getenv("RATE_REPORTS_PER_HOUR", "10"))
 RATE_TRACK_PER_MINUTE = int(os.getenv("RATE_TRACK_PER_MINUTE", "60"))
+# Alertes d'urgence : en plus du tableau de bord, envoi facultatif à un webhook https
+# (Slack, Teams, passerelle SMS...). Vide = tableau de bord uniquement.
+ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "").strip()
+
 # Tableau de bord : échecs de connexion tolérés par adresse IP sur 15 minutes.
 LOGIN_MAX_FAILURES = int(os.getenv("LOGIN_MAX_FAILURES", "5"))
 

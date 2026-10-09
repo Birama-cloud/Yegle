@@ -54,6 +54,27 @@ if who.button(f"Se déconnecter ({state.admin})", width="stretch"):
     del state["admin"]
     st.rerun()
 
+# ---------------------------------------------------------------- alertes d'urgence, avant tout le reste
+for alert in storage.list_alerts():
+    place = alert["location_text"] or alert["territorial_area"] or "lieu non précisé"
+    notified = ""
+    if alert["notify_error"]:
+        notified = f"<span>Notification externe en échec : {esc(alert['notify_error'])}</span>"
+    elif alert["notified"]:
+        notified = "<span>Notification externe envoyée</span>"
+    box, act = st.columns([5, 1], vertical_alignment="center")
+    box.markdown(
+        f"<div class='yg-alert'><b>Urgence · {esc(alert['reference'])}</b> {esc(alert['description'])}"
+        f"<span>{esc(place)} · {esc(when(alert['created_at']))} · "
+        f"{esc(alert['org_name'] or 'organisme à déterminer')}</span>"
+        f"<span>{esc(alert['reason'])}</span>{notified}</div>", unsafe_allow_html=True)
+    if act.button("Pris en charge", key=f"ack_{alert['id']}", type="primary", width="stretch"):
+        try:
+            storage.acknowledge_alert(alert["id"], actor)
+        except StorageError as e:
+            st.toast(str(e))
+        st.rerun()
+
 unverified = [o.display_name for o in assistant.knowledge.organizations if o.active and not o.verified]
 if unverified and settings.ROUTING_REQUIRE_VERIFIED:
     st.warning("Fiches organismes à vérifier : " + ", ".join(unverified) + ". Sans date de vérification dans "
@@ -165,7 +186,12 @@ d2.markdown(
     + (f" ({esc(report['org_service'])})" if report["org_service"] else "") + "</p>"
     f"<p><span>Confiance dans l'organisme :</span> {number(report['confidence_organization'])}</p>"
     f"<p><span>Confiance dans le lieu :</span> {number(report['confidence_location'])}</p>"
-    f"<p><span>Confiance dans le problème :</span> {number(report['confidence_problem'])}</p></div>",
+    f"<p><span>Confiance dans le problème :</span> {number(report['confidence_problem'])}</p>"
+    + "".join(f"<p><span>Alerte d'urgence :</span> "
+              + (f"prise en charge par {esc(a['acknowledged_by'])} le {esc(when(a['acknowledged_at']))}"
+                 if a["acknowledged_at"] else "<b>en attente de prise en charge</b>") + "</p>"
+              for a in history["alerts"])
+    + "</div>",
     unsafe_allow_html=True)
 with st.expander("Message d'origine du citoyen"):
     st.text(report["transcript"] or "")

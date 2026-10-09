@@ -101,6 +101,8 @@ Statuts : `RECEIVED → ROUTED → ASSIGNED → IN_PROGRESS → RESOLVED → CLO
 | GET | `/api/admin/reports/{reference}` | Détail et historiques |
 | PATCH | `/api/admin/reports/{reference}/status` | Changer le statut |
 | POST | `/api/admin/reports/{reference}/reroute` | Réorienter, motif obligatoire |
+| GET | `/api/admin/alerts` | Alertes d'urgence en attente (`?include_acknowledged=true` : toutes) |
+| POST | `/api/admin/alerts/{id}/acknowledge` | Prise en charge d'une alerte, tracée |
 | GET | `/api/admin/organizations`, `/api/admin/stats` | Organismes, compteurs |
 
 Les chemins `/api/admin` exigent l'en-tête `X-API-Key`.
@@ -108,6 +110,14 @@ Les chemins `/api/admin` exigent l'en-tête `X-API-Key`.
 Le brouillon vit côté client entre deux messages. Chaque réponse de `/api/analyze` le renvoie avec une signature `draft_token` (HMAC-SHA256, secret `DRAFT_SECRET`). Le client renvoie `draft` et `draft_token` sans les modifier au message suivant et à `/api/reports` ; un brouillon modifié, incomplet ou sans signature est refusé (422). Le client ne peut donc pas s'attribuer une catégorie, une description, un lieu ou une confiance.
 
 Limites de débit par adresse IP (fenêtre glissante, `app/ratelimit.py`) : 20 analyses par minute, écrit et vocal confondus, y compris dans l'interface ; 10 signalements par heure ; 60 consultations du suivi par minute ; 5 échecs de connexion au tableau de bord par quart d'heure. Au-delà, l'API répond 429 avec l'en-tête `Retry-After`. Les compteurs sont en mémoire, propres à chaque processus. Derrière un proxy, lancer uvicorn avec `--proxy-headers --forwarded-allow-ips` pour compter l'adresse du citoyen et non celle du proxy.
+
+## Alertes d'urgence
+
+Un signalement d'urgence « critique » (danger immédiat pour des personnes) crée une alerte, même s'il part en vérification humaine sans organisme : c'est le cas où une équipe doit intervenir le plus vite. Les `escalation_rules` d'un organisme peuvent étendre l'alerte à d'autres niveaux (`{when_urgency: [high], action: notify_admin}`). Une alerte par signalement au plus (`app/alerts.py`, table `alerts`).
+
+L'alerte reste en tête du tableau de bord jusqu'à ce qu'un administrateur la prenne en charge ; son nom et l'heure sont enregistrés. Si `ALERT_WEBHOOK_URL` est configurée (https uniquement), elle y est aussi envoyée, sans transcription ni donnée personnelle ; un échec est tracé et ne bloque pas le signalement. Le citoyen entend en plus le numéro des sapeurs-pompiers (18).
+
+En mode hors ligne (mots-clés), l'urgence ne dépasse jamais « élevée » : seul le modèle d'IA qualifie un signalement de critique.
 
 ## Cas d'erreur
 

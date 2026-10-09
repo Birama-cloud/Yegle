@@ -11,12 +11,10 @@ du moteur d'orientation, à partir de la base de connaissances.
 import json
 import re
 
-from app.knowledge import Knowledge
+from app.knowledge import URGENCIES, Knowledge
 from app.text import contains_phrase, norm
 from app.zones import Gazetteer
 from config import settings
-
-URGENCIES = ("low", "medium", "high", "critical")
 
 SYSTEM = """Tu es le module de compréhension d'un système de signalement citoyen au Sénégal.
 Le citoyen décrit à l'oral ou par écrit un problème dans l'espace public (wolof, français, anglais ou mélange).

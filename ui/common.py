@@ -177,6 +177,10 @@ header[data-testid="stHeader"]{display:none;}
 .yg-panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; height:100%;}
 .yg-panel h4{font-family:var(--display); font-weight:600; font-size:1rem; margin:0 0 .6rem; padding:0; color:var(--indigo);}
 .yg-panel p{margin:.25rem 0; line-height:1.5;} .yg-panel p span{color:var(--muted);}
+.yg-alert{background:var(--stop-soft); border:1px solid var(--stop); border-left:6px solid var(--stop);
+  border-radius:12px; padding:.75rem 1rem; color:var(--ink); line-height:1.45;}
+.yg-alert b{color:var(--stop); margin-right:.35rem;}
+.yg-alert span{display:block; color:var(--muted); font-size:.9rem;}
 .yg-log{border-left:3px solid var(--indigo-soft); padding:.1rem 0 .1rem .9rem; margin:0 0 .9rem;}
 .yg-log b{display:block;} .yg-log span{color:var(--muted); font-size:.9rem;}
 
