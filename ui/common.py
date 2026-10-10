@@ -213,6 +213,13 @@ DARK_CSS = """
 [data-testid="stAudioInputWaveformTimeCode"]{color:var(--muted); background:transparent !important; margin:0 !important;}
 [data-testid="stAudioInput"]:not(:has([aria-label="Stop recording"])) [data-testid="stAudioInputWaveformTimeCode"],
 [data-testid="stAudioInput"]:not(:has([aria-label="Stop recording"])) > div:last-child > div:has([data-testid="stAudioInputWaveSurfer"]){display:none;}
+/* Vocal enregistré, analyse en cours : Streamlit ajoute un bouton de lecture à côté du micro.
+   On le masque, et le micro reste seul, inactif, avec une pulsation, jusqu'à la réponse. */
+[data-testid="stAudioInput"] span:has(> [aria-label="Play"]),
+[data-testid="stAudioInput"] span:has(> [aria-label="Pause"]){display:none !important;}
+[data-testid="stAudioInput"]:has([aria-label="Play"], [aria-label="Pause"]) [aria-label="Record"]{
+  pointer-events:none; animation:yg-attente 1.2s ease-in-out infinite;}
+@keyframes yg-attente{0%,100%{opacity:1} 50%{opacity:.45}}
 
 /* barre de saisie en verre */
 .st-key-yg_compose{max-width:760px; margin:0 auto;}
