@@ -220,6 +220,20 @@ DARK_CSS = """
 [data-testid="stAudioInput"]:has([aria-label="Play"], [aria-label="Pause"]) [aria-label="Record"]{
   pointer-events:none; animation:yg-attente 1.2s ease-in-out infinite;}
 @keyframes yg-attente{0%,100%{opacity:1} 50%{opacity:.45}}
+/* Le texte sous le micro suit l'état : on écoute pendant l'enregistrement, on analyse ensuite.
+   Le message d'attente de Streamlit, en bas de page, devient inutile pour un vocal. */
+[data-testid="stAudioInput"]:has([aria-label="Stop recording"], [aria-label="Play"], [aria-label="Pause"]) > label p{font-size:0;}
+[data-testid="stAudioInput"]:has([aria-label="Stop recording"], [aria-label="Play"], [aria-label="Pause"]) > label p::after{
+  font-size:1.15rem;}
+[data-testid="stAudioInput"]:has([aria-label="Stop recording"]) > label p::after{
+  content:"Je vous écoute. Appuyez pour terminer.";}
+[data-testid="stAudioInput"]:has([aria-label="Play"], [aria-label="Pause"]) > label p::after{
+  content:"Un instant, j'analyse votre message…";}
+.stApp:has([data-testid="stAudioInput"] [aria-label="Play"], [data-testid="stAudioInput"] [aria-label="Pause"]) [data-testid="stSpinner"]{display:none;}
+/* Pendant l'enregistrement, seul le minuteur reste sous le micro : l'onde de Streamlit repoussait
+   le texte hors de l'écran, et les barres de chaque côté du micro jouent déjà ce rôle. */
+[data-testid="stAudioInput"] > div:last-child > div:has([data-testid="stAudioInputWaveSurfer"]){display:none !important;}
+[data-testid="stAudioInput"]:has([aria-label="Stop recording"]) > label{margin-top:.3rem;}
 
 /* barre de saisie en verre */
 .st-key-yg_compose{max-width:760px; margin:0 auto;}
