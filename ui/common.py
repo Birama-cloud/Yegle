@@ -407,8 +407,8 @@ LIGHT_CSS = """
 .st-key-yg_listcard, .st-key-yg_detail, .st-key-yg_login{background:#fff; border:1px solid var(--line); border-radius:20px;
   box-shadow:0 12px 30px rgba(11,31,75,.06); padding:1.2rem 1.25rem;}
 .yg-tablewrap{overflow-x:auto; margin:0 -.2rem;}
-.yg-table{width:100%; border-collapse:collapse; font-size:.91rem; min-width:800px; margin:0;}
-.yg-table th, .yg-table td{border:none !important; border-bottom:1px solid #EDF1F8 !important; padding:.75rem .45rem;
+.yg-table{width:100%; border-collapse:collapse; font-size:.91rem; min-width:740px; margin:0;}
+.yg-table th, .yg-table td{border:none !important; border-bottom:1px solid #EDF1F8 !important; padding:.75rem .38rem;
   text-align:left; vertical-align:middle; color:var(--navy);}
 .yg-table th{font-weight:500; color:var(--muted); background:transparent; white-space:nowrap;}
 .yg-table td.ref{font-weight:700; white-space:nowrap; color:#123A8C;}
@@ -417,8 +417,8 @@ LIGHT_CSS = """
 .yg-table td.na, .yg-table .na{color:var(--muted);}
 .yg-table em.urg{font-style:normal; font-weight:600; color:#B3261E;}
 .yg-table tr.sel td{background:#EAF1FF;} .yg-table tr.sel td:first-child{box-shadow:inset 3px 0 0 #1E5BD8;}
-.yg-conf{display:flex; align-items:center; gap:.55rem; white-space:nowrap;}
-.yg-conf i{display:block; width:58px; height:6px; border-radius:3px; background:#E3E9F5; overflow:hidden;}
+.yg-conf{display:flex; align-items:center; gap:.4rem; white-space:nowrap;}
+.yg-conf i{display:block; width:40px; height:6px; border-radius:3px; background:#E3E9F5; overflow:hidden;}
 .yg-conf i u{display:block; height:100%; background:#1E5BD8; border-radius:3px;}
 .yg-conf.low i u{background:#E0A800;}
 

@@ -8,6 +8,20 @@ Yëgle (« faire savoir » en wolof) est un assistant vocal open source de signa
 
 Projet réalisé pour le **Open Source × AI Hackathon 2026** de Galsen DEV, track *Civic Tech & services publics*.
 
+## Aperçu
+
+<table>
+  <tr>
+    <td width="62%"><img src="docs/captures/accueil.png" alt="Page d'accueil : un grand micro, le citoyen appuie et parle"></td>
+    <td width="38%" rowspan="2"><img src="docs/captures/verification.png" alt="Sur téléphone : résumé du signalement et service destinataire, à confirmer"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/captures/espace-services.png" alt="Espace services : liste des signalements, organisme recommandé et niveau de confiance"></td>
+  </tr>
+</table>
+
+Le citoyen parle, vérifie le résumé, puis envoie. Les services retrouvent le signalement dans leur espace.
+
 ## Le problème
 
 Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen voit le problème, mais ne sait pas à qui s'adresser. Mairie, ONAS, SENELEC, SEN'EAU ? La plupart des plateformes de signalement lui demandent de remplir un formulaire, de choisir une catégorie et de placer un point sur une carte. Cela écarte ceux qui lisent peu ou qui s'expriment d'abord en wolof.
@@ -27,19 +41,30 @@ Un tableau de bord central permet de filtrer les signalements, de les suivre, de
 
 ## Utilisation de l'IA
 
-L'IA a un rôle précis et limité : **écouter et comprendre**. Un seul appel au modèle transcrit le vocal, détecte la langue et renvoie une fiche structurée, contrôlée champ par champ avant usage.
+L'IA a un rôle précis et limité : **écouter et comprendre**. Le vocal est d'abord transcrit mot pour mot, sans traduction, puis un second appel détecte la langue et renvoie une fiche structurée, contrôlée champ par champ avant usage.
 
 L'IA ne choisit **jamais** l'organisme. Cette décision revient à un moteur de règles déterministe, alimenté par `data/organismes.yaml`, parce qu'une compétence administrative ne doit pas dépendre de la mémoire d'un modèle. De même, les phrases annonçant un envoi sont fixes : l'assistant ne peut pas affirmer une transmission qui n'a pas eu lieu.
 
 | Rôle | Modèle ou outil | Type |
 |---|---|---|
-| Transcription du vocal et extraction (un seul appel) | Gemini, modèle réglé par `GEMINI_MODEL` | API |
+| Transcription du vocal | Gemini, modèle réglé par `GEMINI_ASR_MODEL` (à défaut `GEMINI_MODEL`) | API |
+| Compréhension : langue, catégorie, lieu, urgence | Gemini, modèle réglé par `GEMINI_MODEL` | API |
 | Voix de l'assistant en wolof | Gemini TTS, modèle réglé par `GEMINI_TTS_MODEL` | API |
 | Voix de l'assistant en français et en anglais | gTTS | bibliothèque open source appelant un service en ligne |
 | Secours si Gemini est saturé (facultatif) | OpenAI, `OPENAI_MODEL` et Whisper | API |
-| Aide au développement | Claude (Anthropic) | assistant de programmation |
+| Aide au développement | Claude et Claude Code (Anthropic) | assistant de programmation : une grande partie du code et des tests a été écrite avec lui, puis relue |
 
 Sans clé d'API, l'application fonctionne en **mode hors ligne** : compréhension par mots-clés, par écrit uniquement. Ce mode sert de secours et permet de tester tout le parcours.
+
+### L'écoute du wolof
+
+Le wolof est peu présent dans les données des grands modèles : c'est la partie la plus difficile du projet. Trois choix l'améliorent :
+
+- la transcription a sa propre consigne : écrire ce qui est dit, dans la langue où c'est dit, sans rien traduire ;
+- la langue choisie par le citoyen est indiquée au modèle ;
+- un lexique wolof, `data/lexique_wolof.yaml`, lui est fourni à chaque écoute, avec les noms des communes. Un locuteur l'enrichit sans toucher au code : un mot mal entendu s'ajoute en une ligne.
+
+La qualité se mesure sur de vrais vocaux avec `python -m scripts.evaluer` (voir `evaluation/LISEZMOI.md`). Le rapport est écrit dans `docs/EVALUATION.md`.
 
 ## Installation
 
@@ -72,15 +97,19 @@ python -m scripts.demo           fait passer des phrases d'exemple dans la chaî
 python -m scripts.demo --save    idem, en enregistrant (pour peupler le tableau de bord)
 ```
 
-## À faire avant la démonstration
+## État d'avancement
 
-1. **Faire relire le wolof** de `app/messages.py` par un locuteur, y compris la phrase ajoutée quand le problème n'est pas compris (`not_understood`).
-2. **Fiche Mairie.** C'est la seule fiche de `data/organismes.yaml` encore sans date de vérification : ses signalements (voirie, infrastructure) passent en vérification humaine. La voirie est partagée entre la commune, la ville et l'État selon le type de route.
+Fait :
 
-Déjà fait le 2026-10-09 :
+- Fiches organismes SEN'EAU, ONAS, SENELEC, SONAGED et Ville de Dakar vérifiées le 2026-10-09 (`source_url` et `last_verified_at`).
+- Coordonnées des 23 zones contrôlées avec OpenStreetMap, écart inférieur à 1 km. Après tout ajout de zone : `python -m scripts.verifier_zones`.
+- Écoute du wolof améliorée : transcription séparée, lexique, langue transmise au modèle.
 
-- **Fiches organismes** SEN'EAU, ONAS, SENELEC, SONAGED et Ville de Dakar vérifiées sur sources officielles (`source_url` et `last_verified_at`).
-- **Coordonnées des 23 zones** contrôlées avec OpenStreetMap, écart inférieur à 1 km. Après tout ajout de zone : `python -m scripts.verifier_zones`.
+Reste à faire :
+
+1. **Mesurer l'écoute du wolof** sur de vrais vocaux et publier le résultat dans `docs/EVALUATION.md`.
+2. **Enrichir le lexique wolof** et faire relire les phrases de `app/messages.py` par un locuteur.
+3. **Fiche Mairie** : seule fiche encore sans date de vérification. Ses signalements (voirie, infrastructure) passent en vérification humaine, car la voirie est partagée entre la commune, la ville et l'État selon le type de route.
 
 ## Ajouter un organisme
 
@@ -90,21 +119,24 @@ Aucune ligne de code à modifier : ajoutez une fiche dans `data/organismes.yaml`
 
 ```
 config/settings.py        réglages (lus dans .env)
-data/                     base de connaissances : organismes, catégories, zones
+data/                     base de connaissances : organismes, catégories, zones, lexique wolof
 app/
   llm/client.py           appels Gemini, modèle de secours, bascule OpenAI
-  understanding.py        compréhension du message et contrôle de la sortie du modèle
+  understanding.py        transcription, compréhension, contrôle de la sortie du modèle
   zones.py                reconnaissance du lieu
   routing.py              moteur d'orientation institutionnelle
   assistant.py            orchestration du parcours
   storage.py              base SQLite et historiques
   transmission.py         envoi à l'organisme
+  alerts.py               alertes d'urgence
+  ratelimit.py            limites de débit par adresse IP
   messages.py, voice.py   phrases de l'assistant et synthèse vocale
 api/main.py               API REST
-ui/                       pages Streamlit
-scripts/                  vérification, démonstration, contrôle des zones
+ui/                       pages Streamlit, carte en direct (live_map.py)
+scripts/                  vérification, démonstration, contrôle des zones, évaluation
+evaluation/               cas de test de l'écoute et mode d'emploi
 tests/                    tests automatiques
-docs/ARCHITECTURE.md      architecture, modèle de données, API, sécurité, évolution
+docs/                     architecture, maquettes, captures
 ```
 
 ## Vie privée et sécurité

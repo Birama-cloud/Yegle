@@ -3,12 +3,11 @@
 #  Source de vérité du moteur d'orientation. Modifiable sans toucher au code
 #  ni au modèle d'IA. Après modification : python -m scripts.check_setup
 #
-#  ATTENTION : les compétences ci-dessous reprennent les exemples du cahier
-#  des charges. Elles ne sont PAS encore vérifiées (last_verified_at: null).
-#  Tant qu'une fiche n'a pas de date de vérification, aucun signalement ne
-#  lui est envoyé automatiquement : il passe en vérification humaine.
+#  Une fiche n'oriente automatiquement que si elle porte une date de vérification
+#  (last_verified_at). Sans date, ses signalements passent en vérification humaine.
 #  Pour valider une fiche : contrôler la compétence et la zone sur une source
-#  officielle, renseigner source_url, puis last_verified_at: "AAAA-MM-JJ".
+#  officielle, renseigner source_url (la page précise, pas la page d'accueil),
+#  puis last_verified_at: "AAAA-MM-JJ".
 #
 #  territorial_coverage : national | region:<id> | departement:<id> | zone:<id>
 #  transmission_mode    : internal_queue | webhook (exige api_endpoint_if_available en https)
