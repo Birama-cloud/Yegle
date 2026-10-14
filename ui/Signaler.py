@@ -55,6 +55,38 @@ def handle(text: str | None = None, audio: bytes | None = None, mime: str = "aud
     say(turn.message, turn.language)
 
 
+def handle_answer(text: str | None = None, audio: bytes | None = None, mime: str = "audio/wav") -> None:
+    """Réponse au résumé, à la voix ou à l'écrit : « waaw » / « oui » envoie, « déedéet » / « non » annule,
+    une autre phrase corrige. Pour qu'un citoyen qui ne lit pas puisse confirmer sans toucher aux boutons."""
+    if analyze_limiter().take(client_ip()):
+        state.mic_key += 1
+        state.notice = "Vous avez envoyé beaucoup de messages. Patientez une minute, puis réessayez."
+        return
+    with st.spinner("Je vous écoute…" if audio else "Un instant…"):
+        turn = assistant.answer(state.draft, text=text, audio=audio, mime_type=mime, lang=forced_lang)
+    state.messages.append({"role": "user", "content": turn.heard or text or "Message vocal"})
+    state.mic_key += 1
+    if turn.kind == "done":
+        state.report, state.stage = turn.report, "done"
+    elif turn.kind == "cancelled":
+        reset()
+    elif turn.kind in ("clarify", "confirm"):
+        state.draft, state.lang, state.decision = turn.draft, turn.language, turn.decision
+        state.stage = "confirm" if turn.kind == "confirm" else "talk"
+    say(turn.message, turn.language)       # not_heard / error : le résumé reste affiché
+
+
+def mic(label: str, on_audio) -> None:
+    recorded = st.audio_input(label, key=f"mic_{state.mic_key}")
+    if recorded is not None:
+        data = recorded.getvalue()
+        digest = hashlib.sha1(data).hexdigest()
+        if digest != state.last_audio:      # ne jamais traiter deux fois le même enregistrement
+            state.last_audio = digest
+            on_audio(audio=data, mime=recorded.type or "audio/wav")
+            st.rerun()
+
+
 def send() -> None:
     with st.spinner("Enregistrement…"):
         turn = assistant.submit(state.draft)
@@ -95,6 +127,13 @@ if state.stage == "confirm":
         f"<dt>Urgence</dt><dd>{esc(URGENCY_LABELS.get(d['urgency'], d['urgency']))}</dd></dl>"
         f"<div class='dest'><i class='yg-dot{'' if ready else ' warn'}'></i><div>"
         f"<span>Service destinataire</span><b>{esc(org)}</b></div></div></section>", unsafe_allow_html=True)
+    if state.notice:
+        st.warning(state.notice)
+        state.notice = None
+    # Confirmer à la voix, comme pour la question : « waaw » / « oui » envoie, « déedéet » / « non » annule.
+    if not assistant.offline:
+        mic("Répondez à voix haute : « waaw » / « oui » pour envoyer, « déedéet » / « non » pour annuler",
+            handle_answer)
     if st.button("Envoyer le signalement", type="primary", width="stretch"):
         send()
         st.rerun()
@@ -107,6 +146,9 @@ if state.stage == "confirm":
         lang = state.lang
         reset()
         say(msg("cancelled", lang), lang)
+        st.rerun()
+    if typed := st.container(key="yg_compose").chat_input("Ou écrivez « oui », « non » ou une correction…"):
+        handle_answer(text=typed)
         st.rerun()
 
 elif state.stage == "done" and state.report:
@@ -133,15 +175,7 @@ else:
         st.info("Mode hors ligne : écrivez votre message. Le micro s'active dès qu'une clé GEMINI_API_KEY "
                 "est renseignée dans le fichier .env.")
     else:
-        label = "Appuyez et parlez" if not state.messages else "Appuyez pour répondre"
-        recorded = st.audio_input(label, key=f"mic_{state.mic_key}")
-        if recorded is not None:
-            data = recorded.getvalue()
-            digest = hashlib.sha1(data).hexdigest()
-            if digest != state.last_audio:      # ne jamais traiter deux fois le même enregistrement
-                state.last_audio = digest
-                handle(audio=data, mime=recorded.type or "audio/wav")
-                st.rerun()
+        mic("Appuyez et parlez" if not state.messages else "Appuyez pour répondre", handle)
     # À l'accueil, le champ reste dans la page pour qu'elle s'ouvre en haut. Une fois la conversation
     # commencée, il se fixe en bas et l'écran suit le dernier message.
     holder = st if state.messages else st.container(key="yg_compose")

@@ -37,17 +37,19 @@ MESSAGES = {
     },
     "summary_known": {
         "fr": "Votre signalement : {description}. Lieu : {place}. Il sera orienté vers {org}. "
-              "Voulez-vous l'envoyer ?",
-        "wo": "Sa yëgle : {description}. Béréb bi : {place}. Dinañu ko yónnee {org}. Ndax ma yónnee ko ?",
-        "en": "Your report: {description}. Location: {place}. It will be sent to {org}. Do you want to send it?",
+              "Voulez-vous l'envoyer ? Répondez « oui » ou « non ».",
+        "wo": "Sa yëgle : {description}. Béréb bi : {place}. Dinañu ko yónnee {org}. "
+              "Ndax ma yónnee ko ? Waxal « waaw » walla « déedéet ».",
+        "en": "Your report: {description}. Location: {place}. It will be sent to {org}. "
+              "Do you want to send it? Say “yes” or “no”.",
     },
     "summary_review": {
         "fr": "Votre signalement : {description}. Lieu : {place}. Notre équipe vérifiera quel service doit "
-              "le traiter. Voulez-vous l'envoyer ?",
+              "le traiter. Voulez-vous l'envoyer ? Répondez « oui » ou « non ».",
         "wo": "Sa yëgle : {description}. Béréb bi : {place}. Sunu équipe dina seet kan moo ko war a toppatoo. "
-              "Ndax ma yónnee ko ?",
+              "Ndax ma yónnee ko ? Waxal « waaw » walla « déedéet ».",
         "en": "Your report: {description}. Location: {place}. Our team will check which service should "
-              "handle it. Do you want to send it?",
+              "handle it. Do you want to send it? Say “yes” or “no”.",
     },
     "done_routed": {
         "fr": "Votre signalement est enregistré et placé dans la file de {org}. Votre référence : {ref}.",

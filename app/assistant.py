@@ -13,7 +13,8 @@ from app import alerts, routing, transmission
 from app.knowledge import Knowledge
 from app.messages import msg
 from app.storage import TRANSITIONS, Storage, StorageError
-from app.understanding import extract_llm, extract_rules, speaks
+from app.text import norm
+from app.understanding import extract_llm, extract_rules, speaks, transcribe
 from app.zones import Gazetteer
 from config import settings
 
@@ -22,6 +23,15 @@ MAX_PROBLEM_QUESTIONS = 2
 MAX_TRANSCRIPT = 8000         # on garde la fin de la conversation au-delà
 PURGE_EVERY_S = 3600
 FINAL_STATUSES = ("RESOLVED", "CLOSED", "REJECTED")
+# Réponse au résumé, à la voix ou à l'écrit. Une réponse courte suffit : « waaw », « oui », « déedéet ».
+YES_WORDS = {"waaw", "waw", "wa", "waaw waaw", "yonnee ko", "yonne ko", "yonnee", "yonne", "baax na", "degg la",
+             "oui", "ouais", "d accord", "ok", "okay", "envoie", "envoyez", "envoyer", "vas y", "allez y",
+             "c est bon", "valide", "je confirme", "confirme", "yes", "yeah", "send", "send it", "go ahead"}
+NO_WORDS = {"deedeet", "deedet", "dedet", "deet", "bul ko yonnee", "bul yonnee", "neenal", "neenal ko", "bayyi",
+            "bayyi ko", "non", "annule", "annuler", "arrete", "laisse tomber", "no", "cancel", "stop"}
+SHORT_ANSWER_WORDS = 6
+FILLER_WORDS = {"merci", "jerejef", "rek", "ko", "bi", "please", "thanks", "thank", "you", "s", "il", "vous",
+                "te", "plait"}
 
 
 @dataclass
@@ -204,6 +214,51 @@ class Assistant:
         return True
 
     # ------------------------------------------------------------------ confirmation du citoyen
+    @staticmethod
+    def yes_or_no(text: str) -> str | None:
+        """« yes », « no » ou None. Seule une réponse faite UNIQUEMENT de oui ou de non compte :
+        « Non, c'est à Pikine » n'annule pas, c'est une correction."""
+        rest = f" {norm(text)} "
+        if not rest.strip() or len(rest.split()) > SHORT_ANSWER_WORDS:
+            return None
+        found = set()
+        for vocab, verdict in ((NO_WORDS, "no"), (YES_WORDS, "yes")):     # « bul ko yónnee » avant « yónnee »
+            for w in sorted(vocab, key=len, reverse=True):
+                if f" {w} " in rest:
+                    rest, found = rest.replace(f" {w} ", " "), found | {verdict}
+        if any(w not in FILLER_WORDS for w in rest.split()) or len(found) != 1:
+            return None
+        return found.pop()
+
+    def answer(self, draft: dict, text: str | None = None, audio: bytes | None = None,
+               mime_type: str = "audio/wav", lang: str | None = None) -> Turn:
+        """Réponse du citoyen au résumé, pour ceux qui ne lisent pas les boutons :
+        « oui » envoie, « non » annule, toute autre phrase corrige le signalement."""
+        from app.llm.client import LLMUnavailable
+
+        draft = {**new_draft(), **(draft or {})}
+        language = lang or draft.get("language") or "fr"
+        heard = (text or "").strip()
+        if audio:
+            if self.llm is None:
+                return Turn("not_heard", msg("not_heard", language), language, draft)
+            try:
+                heard = transcribe(self.llm, audio, mime_type, lang_hint=language, gazetteer=self.gazetteer)
+            except LLMUnavailable as e:
+                key = "quota" if getattr(e, "quota", False) else "error"
+                return Turn("error", msg(key, language), language, draft)
+            if not heard:
+                return Turn("not_heard", msg("not_heard", language), language, draft)
+        verdict = self.yes_or_no(heard)
+        if verdict == "yes":
+            turn = self.submit(draft)
+        elif verdict == "no":
+            turn = Turn("cancelled", msg("cancelled", language), language, new_draft())
+        else:
+            turn = self.analyze(draft, text=heard, lang=lang)
+        turn.heard = heard
+        return turn
+
     def submit(self, draft: dict) -> Turn:
         """Enregistre le signalement confirmé. L'orientation est recalculée ici."""
         draft = {**new_draft(), **(draft or {})}

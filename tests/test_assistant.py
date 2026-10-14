@@ -253,3 +253,45 @@ def test_le_citoyen_peut_changer_de_langue(verified, gazetteer):
     t1 = a.analyze(None, text="Ndox mi dafa tuuru")
     t2 = a.analyze(t1.draft, text="C'est dans la rue à Grand-Yoff")
     assert t2.language == "fr" and "Votre signalement : Fuite d'eau" in t2.message
+
+
+@pytest.mark.parametrize("reponse,attendu", [
+    ("Waaw", "yes"), ("waaw, yónnee ko", "yes"), ("Oui", "yes"), ("D'accord", "yes"), ("yes", "yes"),
+    ("Déedéet", "no"), ("Non", "no"), ("Annule", "no"), ("bul ko yónnee", "no"),
+    ("Waaw waaye ci Grand-Yoff la nekk, du Parcelles Assainies", None), ("", None), ("oui non", None),
+])
+def test_reponse_courte_au_resume(reponse, attendu):
+    assert Assistant.yes_or_no(reponse) == attendu
+
+
+def _jusqu_au_resume(assistant):
+    t = assistant.analyze(None, text="Il y a une fuite d'eau dans ma rue à Grand-Yoff")
+    assert t.kind == "confirm"
+    return t
+
+
+def test_confirmer_a_la_voix_envoie(assistant):
+    t = assistant.answer(_jusqu_au_resume(assistant).draft, text="Waaw")
+    assert t.kind == "done" and t.report["reference"] and t.heard == "Waaw"
+
+
+def test_refuser_a_la_voix_annule(assistant):
+    t = assistant.answer(_jusqu_au_resume(assistant).draft, text="Déedéet")
+    assert t.kind == "cancelled" and assistant.storage.list_reports() == []
+
+
+def test_une_autre_phrase_corrige_le_signalement(assistant):
+    t = assistant.answer(_jusqu_au_resume(assistant).draft, text="Non, c'est à Pikine")
+    assert t.kind == "confirm" and "Pikine" in t.message
+
+
+def test_confirmer_par_un_vocal_transcrit(verified, gazetteer):
+    a = Assistant(llm=FakeLLM(_reponse(transcription="Ndox mi dafa tuuru ci Grand-Yoff", language="wo",
+                                       category="eau", subcategory="fuite_d_eau", description_fr="Fuite d'eau",
+                                       description_user="Ndox mi dafa tuuru", location_text="Grand-Yoff"),
+                              "Waaw"),
+                  knowledge=verified, gazetteer=gazetteer, storage=Storage(":memory:"))
+    t1 = a.analyze(None, text="Ndox mi dafa tuuru ci Grand-Yoff")
+    assert t1.kind == "confirm" and "waaw" in t1.message
+    t2 = a.answer(t1.draft, audio=b"RIFF....")
+    assert t2.kind == "done" and t2.language == "wo" and t2.message.startswith("Sa yëgle bindu na")
