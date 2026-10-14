@@ -320,3 +320,19 @@ def test_reponses_reelles_au_resume(assistant, reponse, attendu):
     assert t2.kind == attendu
     if attendu == "ask_again":            # le signalement n'est pas modifié par une réponse incomprise
         assert t2.draft["description"] == t1.draft["description"]
+
+
+def test_reponse_de_lieu_avec_de_garde_le_wolof(verified, gazetteer):
+    # Cas réel : « Siège de Parcelles Assainies, unité 21 » faisait passer Yëgle au français à cause de « de ».
+    llm = FakeLLM(
+        _reponse(transcription="Nu ngi suñu koñ ap benn lampadaire mo daal ci wétu jumaa ji. Kéen jappale ñu gaaw.",
+                 language="wo", category="eclairage_public", description_fr="Lampadaire en panne",
+                 description_user="Benn lampadaire dafa yàqu", location_text="wétu jumaa ji"),
+        _reponse(transcription="Siège de Parcelles Assainies, unité 21.", language="fr",
+                 category="eclairage_public", description_fr="Lampadaire en panne",
+                 description_user="Lampadaire en panne",
+                 location_text="Siège de Parcelles Assainies, unité 21"))
+    a = Assistant(llm=llm, knowledge=verified, gazetteer=gazetteer, storage=Storage(":memory:"))
+    t1 = a.analyze(None, text="Nu ngi suñu koñ ap benn lampadaire mo daal ci wétu jumaa ji. Kéen jappale ñu gaaw.")
+    t2 = a.analyze(t1.draft, text="Siège de Parcelles Assainies, unité 21.")
+    assert t2.language == "wo" and t2.message.startswith("Sa yëgle : Benn lampadaire dafa yàqu")

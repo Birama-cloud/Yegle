@@ -138,7 +138,7 @@ class Assistant:
         previous = draft.get("language") if draft["transcript"] else None
         language = lang or extraction["language"]
         if not lang and previous in settings.LANGS and language != previous \
-                and not speaks(heard, language, self.gazetteer):
+                and not speaks(heard, language, self.gazetteer, extraction.get("location_text")):
             language = previous
         if language != extraction["language"]:
             extraction["description_user"] = None   # rédigée dans la mauvaise langue : on garde l'ancienne

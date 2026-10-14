@@ -95,7 +95,10 @@ streamlit run ui/Signaler.py     interface : signalement, suivi, tableau de bord
 uvicorn api.main:app --reload    API REST, documentation interactive sur /docs
 python -m scripts.demo           fait passer des phrases d'exemple dans la chaîne
 python -m scripts.demo --save    idem, en enregistrant (pour peupler le tableau de bord)
+python -m scripts.precharger_voix  enregistre la voix des phrases fixes de Yëgle dans data/voix/
 ```
+
+Les questions et confirmations de Yëgle sont des phrases fixes : leur voix est enregistrée une fois dans `data/voix/`, puis relue sans appel à Gemini. Seuls les résumés, propres à chaque citoyen, sont générés à chaque fois, et ne sont jamais enregistrés.
 
 ## État d'avancement
 

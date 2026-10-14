@@ -237,18 +237,24 @@ def extract_llm(llm, knowledge: Knowledge, text: str | None = None, audio: bytes
     return result
 
 
-def speaks(text: str, lang: str, gazetteer: Gazetteer | None = None) -> bool:
-    """Vrai si le message contient des mots propres à cette langue, noms de lieux mis à part.
+def speaks(text: str, lang: str, gazetteer: Gazetteer | None = None, place: str | None = None) -> bool:
+    """Vrai si le message est vraiment dit dans cette langue, lieu mis à part.
 
     Sert à ne pas changer la langue de la conversation sur une simple réponse de lieu
-    (« Parcelles Assainies unité 21 ») : un nom de lieu ne dit rien de la langue parlée.
+    (« Siège de Parcelles Assainies, unité 21 ») : un lieu ne dit rien de la langue parlée,
+    et un seul petit mot (« de ») ne suffit pas. Il faut au moins deux mots propres à la langue.
     """
     text = text or ""
+    if place:
+        text = text.replace(place, " ")
     if gazetteer is not None:
         for z in gazetteer.zones:
             text = re.sub(re.escape(z.name), " ", text, flags=re.IGNORECASE)
     pattern = LANGUAGE_MARKERS.get(lang)
-    return bool(pattern and pattern.search(text))
+    if not pattern:
+        return False
+    hits = {m.group(0).lower() for m in pattern.finditer(text)}
+    return len(hits) >= 2
 
 
 def guess_language(text: str) -> str:

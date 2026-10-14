@@ -40,6 +40,9 @@ OPENAI_TRANSCRIBE_MODEL = os.getenv("OPENAI_TRANSCRIBE_MODEL", "whisper-1")
 # Voix
 GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
 GEMINI_TTS_VOICE = os.getenv("GEMINI_TTS_VOICE", "Kore")
+# Voix des phrases fixes de Yëgle (questions, confirmations), enregistrées une fois pour toutes :
+# elles ne consomment plus de quota Gemini. Les résumés, propres à chaque citoyen, n'y sont jamais écrits.
+VOICE_DIR = Path(os.getenv("VOICE_DIR", DATA_DIR / "voix"))
 
 # Écoute du vocal. Par défaut, il est d'abord transcrit seul (consigne dédiée, lexique wolof de
 # data/lexique_wolof.yaml, langue choisie par le citoyen), puis compris comme un message écrit.
