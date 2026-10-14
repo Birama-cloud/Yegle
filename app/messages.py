@@ -1,7 +1,7 @@
 """Phrases dites au citoyen. Elles sont fixes : le modèle d'IA ne rédige jamais
 l'annonce d'une transmission, pour ne rien affirmer que le système n'a pas fait.
 
-ATTENTION : les phrases en wolof doivent être relues par un locuteur avant la démonstration.
+Les phrases en wolof ont été relues par un locuteur (octobre 2026).
 """
 
 MESSAGES = {
@@ -62,7 +62,7 @@ MESSAGES = {
     },
     "emergency": {
         "fr": "En cas de danger immédiat, appelez aussi les sapeurs-pompiers au 18.",
-        "wo": "Su amee musiba, wootel it sapeurs-pompiers yi ci 18.",
+        "wo": "Su amee musiba, wootel gaaw sapeurs-pompiers yi ci 18.",
         "en": "If there is immediate danger, also call the fire brigade on 18.",
     },
     "correct": {
