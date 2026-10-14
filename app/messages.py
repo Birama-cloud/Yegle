@@ -67,6 +67,11 @@ MESSAGES = {
         "wo": "Su amee musiba, wootel gaaw sapeurs-pompiers yi ci 18.",
         "en": "If there is immediate danger, also call the fire brigade on 18.",
     },
+    "confirm_hint": {
+        "fr": "Je n'ai pas compris votre réponse. Dites « oui » pour envoyer, ou « non » pour annuler.",
+        "wo": "Xamuma li nga wax. Waxal « waaw » ngir yónnee ko, walla « déedéet » ngir neenal ko.",
+        "en": "I didn't understand your answer. Say “yes” to send it, or “no” to cancel.",
+    },
     "correct": {
         "fr": "D'accord. Dites-moi ce qu'il faut corriger.",
         "wo": "Baax na. Wax ma li ma war a soppi.",

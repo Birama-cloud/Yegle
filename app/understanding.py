@@ -181,6 +181,29 @@ def transcribe(llm, audio: bytes, mime_type: str = "audio/wav", lang_hint: str |
     return "" if not re.sub(r"\[inaudible\]|[\W_]", "", text, flags=re.IGNORECASE) else text[:2000]
 
 
+ANSWER_PROMPT = """Transcris cet enregistrement mot pour mot.
+
+Contexte : on vient de demander à un habitant du Sénégal s'il veut envoyer son signalement.
+Il répond le plus souvent par un ou deux mots : « waaw » (oui), « déedéet » (non), « oui », « non »,
+« yes », « no », parfois suivis d'une courte précision.
+
+Règles :
+- Écris uniquement ce qui est dit. N'ajoute AUCUN mot qui n'est pas prononcé, n'invente pas de phrase.
+- Wolof en orthographe courante (waaw, déedéet), français en français, anglais en anglais. Ne traduis rien.
+- Si l'enregistrement ne contient pas de parole, réponds par une ligne vide.
+
+Réponds uniquement par la transcription, sans guillemets ni commentaire."""
+
+
+def transcribe_answer(llm, audio: bytes, mime_type: str = "audio/wav") -> str:
+    """Transcription de la réponse au résumé : sans lexique ni noms de lieux, pour qu'un « waaw »
+    très court ne soit pas complété en phrase inventée (« Waw, yoon wi ñëku »)."""
+    raw = llm.generate([llm.audio_part(audio, mime_type), ANSWER_PROMPT], temperature=0.0,
+                       timeout_s=settings.TIMEOUT_TRANSCRIBE_S, model=settings.GEMINI_ASR_MODEL or None)
+    text = re.sub(r"\s+", " ", (raw or "").strip().strip('"«»“”')).strip()
+    return "" if not re.sub(r"\[inaudible\]|[\W_]", "", text, flags=re.IGNORECASE) else text[:500]
+
+
 def extract_llm(llm, knowledge: Knowledge, text: str | None = None, audio: bytes | None = None,
                 mime_type: str = "audio/wav", draft: dict | None = None, lang_hint: str | None = None,
                 gazetteer: Gazetteer | None = None) -> dict:

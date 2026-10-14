@@ -295,3 +295,28 @@ def test_confirmer_par_un_vocal_transcrit(verified, gazetteer):
     assert t1.kind == "confirm" and "waaw" in t1.message
     t2 = a.answer(t1.draft, audio=b"RIFF....")
     assert t2.kind == "done" and t2.language == "wo" and t2.message.startswith("Sa yëgle bindu na")
+
+
+@pytest.mark.parametrize("transcription", ["Waw.", "Wao", "waaw waaw", "Ouai", "Dakor"])
+def test_oui_mal_orthographie_par_la_transcription(transcription):
+    assert Assistant.yes_or_no(transcription) == "yes"
+
+
+def test_reponse_courte_incomprise_redemande_sans_tourner_en_boucle(assistant):
+    t1 = _jusqu_au_resume(assistant)
+    t2 = assistant.answer(t1.draft, text="Ndax")
+    assert t2.kind == "ask_again" and "oui" in t2.message and t2.draft["description"] == t1.draft["description"]
+    assert assistant.answer(t2.draft, text="Oui").kind == "done"
+
+
+@pytest.mark.parametrize("reponse,attendu", [
+    # Réponses réellement transcrites lors d'un test en wolof, qui faisaient tourner Yëgle en boucle.
+    ("Waw, yoon wi ñëku", "done"), ("Dédéet bu ko yóbbul", "cancelled"), ("dégât", "ask_again"),
+    ("Man, he did it, did it, did it.", "ask_again"), ("Mané dé dédet.", "cancelled"),
+])
+def test_reponses_reelles_au_resume(assistant, reponse, attendu):
+    t1 = _jusqu_au_resume(assistant)
+    t2 = assistant.answer(t1.draft, text=reponse)
+    assert t2.kind == attendu
+    if attendu == "ask_again":            # le signalement n'est pas modifié par une réponse incomprise
+        assert t2.draft["description"] == t1.draft["description"]

@@ -5,6 +5,7 @@ Le brouillon (draft) est un simple dictionnaire : il vit côté interface entre 
 Au moment de l'envoi, tout est recalculé côté serveur (zone, organisme) : on ne fait
 jamais confiance à un organisme ou à un niveau de confiance venu du client.
 """
+import difflib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -14,7 +15,7 @@ from app.knowledge import Knowledge
 from app.messages import msg
 from app.storage import TRANSITIONS, Storage, StorageError
 from app.text import norm
-from app.understanding import extract_llm, extract_rules, speaks, transcribe
+from app.understanding import extract_llm, extract_rules, speaks, transcribe_answer
 from app.zones import Gazetteer
 from config import settings
 
@@ -24,14 +25,16 @@ MAX_TRANSCRIPT = 8000         # on garde la fin de la conversation au-delà
 PURGE_EVERY_S = 3600
 FINAL_STATUSES = ("RESOLVED", "CLOSED", "REJECTED")
 # Réponse au résumé, à la voix ou à l'écrit. Une réponse courte suffit : « waaw », « oui », « déedéet ».
-YES_WORDS = {"waaw", "waw", "wa", "waaw waaw", "yonnee ko", "yonne ko", "yonnee", "yonne", "baax na", "degg la",
-             "oui", "ouais", "d accord", "ok", "okay", "envoie", "envoyez", "envoyer", "vas y", "allez y",
-             "c est bon", "valide", "je confirme", "confirme", "yes", "yeah", "send", "send it", "go ahead"}
-NO_WORDS = {"deedeet", "deedet", "dedet", "deet", "bul ko yonnee", "bul yonnee", "neenal", "neenal ko", "bayyi",
-            "bayyi ko", "non", "annule", "annuler", "arrete", "laisse tomber", "no", "cancel", "stop"}
+# Mots seuls, rapprochés à l'orthographe près (« Waw », « Wao », « Dédet ») car la transcription varie.
+YES_SINGLE = ["waaw", "waw", "wao", "waou", "oui", "ouais", "ouai", "ok", "okay", "dakor", "yes", "yeah", "yep",
+              "envoie", "envoyez", "envoyer", "yonnee", "yonneel", "valide", "confirme", "send"]
+NO_SINGLE = ["deedeet", "deedet", "dedet", "deet", "non", "nan", "no", "nope", "annule", "annuler", "cancel"]
+YES_PHRASES = ["d accord", "c est bon", "vas y", "allez y", "baax na", "degg la", "yonnee ko", "go ahead"]
+NO_PHRASES = ["bul ko yonnee", "bu ko yonnee", "bul ko yobbu", "bu ko yobbul", "bul yonnee", "neenal ko",
+              "bayyi ko", "laisse tomber", "n envoie pas", "don t send"]
+BUT_WORDS = {"waaye", "mais", "but", "sauf"}       # « waaw waaye… » : une correction, pas un oui
+FILLER_WORDS = {"merci", "jerejef", "rek", "ko", "bi", "man", "de", "please", "thanks", "thank", "you"}
 SHORT_ANSWER_WORDS = 6
-FILLER_WORDS = {"merci", "jerejef", "rek", "ko", "bi", "please", "thanks", "thank", "you", "s", "il", "vous",
-                "te", "plait"}
 
 
 @dataclass
@@ -216,19 +219,33 @@ class Assistant:
     # ------------------------------------------------------------------ confirmation du citoyen
     @staticmethod
     def yes_or_no(text: str) -> str | None:
-        """« yes », « no » ou None. Seule une réponse faite UNIQUEMENT de oui ou de non compte :
-        « Non, c'est à Pikine » n'annule pas, c'est une correction."""
-        rest = f" {norm(text)} "
-        if not rest.strip() or len(rest.split()) > SHORT_ANSWER_WORDS:
+        """« yes », « no » ou None (ni l'un ni l'autre, ou les deux).
+
+        Dans une réponse longue, seuls les premiers mots comptent : la transcription d'un « waaw »
+        est parfois suivie de mots inventés, mais elle commence bien par le oui."""
+        words = norm(text).split()
+        if not words:
             return None
-        found = set()
-        for vocab, verdict in ((NO_WORDS, "no"), (YES_WORDS, "yes")):     # « bul ko yónnee » avant « yónnee »
-            for w in sorted(vocab, key=len, reverse=True):
-                if f" {w} " in rest:
-                    rest, found = rest.replace(f" {w} ", " "), found | {verdict}
-        if any(w not in FILLER_WORDS for w in rest.split()) or len(found) != 1:
-            return None
-        return found.pop()
+        padded = f" {' '.join(words)} "
+        if any(f" {p} " in padded for p in NO_PHRASES):
+            return "no"
+        looked = words if len(words) <= SHORT_ANSWER_WORDS else words[:2]
+
+        def close(w, vocab):
+            return w in vocab or (len(w) >= 3 and bool(difflib.get_close_matches(w, vocab, n=1, cutoff=0.75)))
+
+        yes = any(close(w, YES_SINGLE) for w in looked) or any(padded.startswith(f" {p} ") for p in YES_PHRASES)
+        no = any(close(w, NO_SINGLE) for w in looked)
+        if yes and not no and not BUT_WORDS & set(words):
+            return "yes"
+        if no and not yes:
+            return "no"
+        return None
+
+    def _brings_info(self, text: str) -> bool:
+        """La réponse apporte-t-elle un lieu ou un problème ? Sinon ce n'est pas une correction."""
+        zone, _ = self.gazetteer.resolve(text)
+        return zone is not None or extract_rules(self.knowledge, self.gazetteer, text).get("category") not in (None, "autre")
 
     def answer(self, draft: dict, text: str | None = None, audio: bytes | None = None,
                mime_type: str = "audio/wav", lang: str | None = None) -> Turn:
@@ -243,7 +260,7 @@ class Assistant:
             if self.llm is None:
                 return Turn("not_heard", msg("not_heard", language), language, draft)
             try:
-                heard = transcribe(self.llm, audio, mime_type, lang_hint=language, gazetteer=self.gazetteer)
+                heard = transcribe_answer(self.llm, audio, mime_type)
             except LLMUnavailable as e:
                 key = "quota" if getattr(e, "quota", False) else "error"
                 return Turn("error", msg(key, language), language, draft)
@@ -252,10 +269,13 @@ class Assistant:
         verdict = self.yes_or_no(heard)
         if verdict == "yes":
             turn = self.submit(draft)
+        elif self._brings_info(heard):          # « Déedéet, ci Pikine la » : on corrige
+            turn = self.analyze(draft, text=heard, lang=lang)
         elif verdict == "no":
             turn = Turn("cancelled", msg("cancelled", language), language, new_draft())
         else:
-            turn = self.analyze(draft, text=heard, lang=lang)
+            # Ni oui ni non : on redemande, sans toucher au signalement ni refaire tout le résumé.
+            turn = Turn("ask_again", msg("confirm_hint", language), language, draft)
         turn.heard = heard
         return turn
 
