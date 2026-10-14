@@ -9,9 +9,13 @@
 #  Écrivez comme les gens écrivent vraiment, et gardez la même graphie partout.
 #  Après modification : relancez l'application.
 #
-#  ATTENTION : liste de départ, à relire et à compléter par un locuteur.
+#  Relu et corrigé par un locuteur (Birama TOGOLA), octobre 2026.
+#  Plusieurs façons de dire ? Séparez-les par « / » : wo: "kurant / courant".
+#  Une ligne laissée vide ("") est ignorée par Yëgle : rien ne casse.
+#  Limites : 120 mots et 30 phrases au maximum.
 # ============================================================================
 mots:
+  # --- Déjà validés ----------------------------------------------------------
   - {wo: ndox, fr: eau}
   - {wo: ballë, fr: "jaillir, couler"}
   - {wo: mbedd, fr: rue}
@@ -22,9 +26,119 @@ mots:
   - {wo: dafa, fr: "c'est"}
   - {wo: fii, fr: ici}
   - {wo: fan, fr: où}
-  - {wo: mongui, fr: est en train de}
+  - {wo: mongui, fr: "est en train de"}
   - {wo: courant, fr: électricité}
   - {wo: lampadaire, fr: lampadaire}
+  - {wo: todj, fr: "cassé, percé"}
+  - {wo: daanu, fr: tomber}
+  - {wo: dém, fr: "partir, être parti (ndox mi dém na : l'eau est coupée)"}
+
+  # --- Eau -------------------------------------------------------------------
+  - {wo: "fuite / ndox muy tuuru", fr: "fuite d'eau"}
+  - {wo: "tuyo", fr: tuyau}
+  - {wo: "robine / robinet", fr: robinet}
+  - {wo: "conteer / compteur", fr: "compteur d'eau"}
+  - {wo: "ndox dagg na / coupure / ndox mi dém na", fr: "coupure d'eau"}
+  - {wo: "ndox mu tilim", fr: "eau sale, eau trouble"}
+
+  # --- Assainissement --------------------------------------------------------
+  - {wo: "egout", fr: égout}
+  - {wo: "caniveau / kanivo", fr: caniveau}
+  - {wo: "ndoxu egout / ndox mu tilim", fr: "eaux usées"}
+  - {wo: "ndox mu taxaw", fr: "eau stagnante"}
+  - {wo: "inondation / ndox mu fees", fr: inondation}
+  - {wo: "taw", fr: "pluie"}
+  - {wo: "xasaw / xet wu bon", fr: "mauvaise odeur"}
+  - {wo: "yoo", fr: moustiques}
+  - {wo: "fosse / fos", fr: "fosse septique"}
+  - {wo: "tëju", fr: "bouché"}
+  - {wo: "tuuru / fees ba tuuru", fr: "déborder"}
+  - {wo: "mënul", fr: "ne peut pas"}
+
+  # --- Électricité -----------------------------------------------------------
+  - {wo: "délestage / kurant dagg na", fr: "coupure de courant"}
+  - {wo: "fil / câble", fr: "câble, fil électrique"}
+  - {wo: "poteau / poto", fr: poteau}
+  - {wo: "transfo", fr: transformateur}
+  - {wo: "safara", fr: étincelles}
+
+  # --- Éclairage public ------------------------------------------------------
+  - {wo: "fey", fr: "éteint"}
+  - {wo: "tàkk", fr: "s'allumer"}
+  - {wo: "lëndëm", fr: "il fait noir"}
+  - {wo: "guddi", fr: "la nuit"}
+
+  # --- Voirie ----------------------------------------------------------------
+  - {wo: "pax", fr: "trou, nid de poule"}
+  - {wo: "trottoir", fr: trottoir}
+  - {wo: "goudron", fr: goudron}
+  - {wo: "suuf", fr: sable}
+  - {wo: "oto", fr: voiture}
+
+  # --- Propreté --------------------------------------------------------------
+  - {wo: "mbalit mu bari", fr: "tas d'ordures"}
+  - {wo: "camion mbalit", fr: "camion poubelle"}
+  - {wo: "for / jël", fr: "ramasser"}
+  - {wo: "lakk", fr: "brûler"}
+  - {wo: "saxar", fr: "fumée"}
+
+  # --- Infrastructure --------------------------------------------------------
+  - {wo: "lekkool / école", fr: école}
+  - {wo: "pont / passerelle", fr: "pont, passerelle"}
+  - {wo: "miir / mur", fr: mur}
+
+  # --- Repères de lieu -------------------------------------------------------
+  - {wo: "ci wetu / ci côté", fr: "à côté de"}
+  - {wo: "janoo ak / ci kanam", fr: "en face de"}
+  - {wo: "ginnaaw", fr: derrière}
+  - {wo: "carrefour", fr: carrefour}
+  - {wo: "jumaa / jàkka", fr: mosquée}
+  - {wo: "marse / marché", fr: marché}
+  - {wo: "arrêt", fr: "arrêt de bus"}
+  - {wo: "gox / quartier / koñ", fr: quartier}
+  - {wo: "kër", fr: maison}
+
+  # --- Gravité et durée ------------------------------------------------------
+  - {wo: "musiba / danger", fr: "danger, dangereux"}
+  - {wo: "yàkkamti / urgent / mënul xaar", fr: urgent}
+  - {wo: "xale yi / gone yi / tut tank yi", fr: enfants}
+  - {wo: "kenn ñëwul / kenn ñëwa gul", fr: "personne n'est venu"}
+  - {wo: "démb ba léegi / depuis démb", fr: "depuis hier"}
+  - {wo: "benn ayu-bis a ngi nii / semaine a ngi nii / depuis semaine bëlé", fr: "depuis une semaine"}
+  - {wo: "bés bu nekk", fr: "chaque jour"}
 
 phrases:
+  # Le français est en commentaire après « # ».
   - "Ndox mi mongui ballë ci mbedd mi, fii ci Grand-Yoff"
+  # Eau
+  - "Ñaari fan a ngi nii, ndox amul ci robinet bi"   # Il n'y a pas d'eau au robinet depuis deux jours
+  - "Tuyo bi dafa todj ci kanam jumaa ji"   # Un tuyau a éclaté devant la mosquée
+  - "Ndoxu robinet bi dafa tilim"   # L'eau du robinet est sale
+  # Assainissement
+  - "Egout bi dafa fees ba tuuru ci sunu mbedd"   # L'égout déborde dans notre rue
+  - "Caniveau bi dafa tëju, ndox mi mënul dem"   # Le caniveau est bouché, l'eau ne s'en va pas
+  - "Ginnaaw taw bi, ndox mi dafa fees ci biir gox bi"   # Après la pluie, le quartier est inondé
+  - "Dafa xasaw lool te yoo yi bari nañu"   # Ça sent très mauvais et il y a beaucoup de moustiques
+  # Électricité
+  - "Kurant bi dafa dém ci suba ba léegi"   # Il n'y a pas de courant depuis ce matin
+  - "Fil bi daanu na ci suuf, mën na am musiba ci xale yi"   # Un câble est tombé par terre, c'est dangereux pour les enfants
+  - "Poteau bi dafa wengu, dina daanu"   # Le poteau penche, il va tomber
+  - "Transfo bi dafay génne safara"   # Le transformateur fait des étincelles
+  # Éclairage public
+  - "Lampadaire bu sunu mbedd bi, tàkk a tul"   # Le lampadaire de notre rue ne s'allume plus
+  - "Guddi, mbedd mi dafa lëndëm këruus"   # La nuit, la rue est toute noire
+  # Voirie
+  - "Am na pax bu mag ci yoon wi, oto yi dañuy yàqu"   # Il y a un grand trou sur la route, les voitures s'abîment
+  - "Yoon wi dafa fees ak suuf"   # La route est pleine de sable
+  - "Trottoir bi dafa todj"   # Le trottoir est cassé
+  # Propreté
+  - "Am na mbalit mu bari ci carrefour bi"   # Il y a un tas d'ordures au carrefour
+  - "Camion mbalit bi jaarut, benn semaine a ngi nii"   # Le camion poubelle ne passe plus depuis une semaine
+  - "Nit ñi dañuy lakk mbalit mi, saxar bi bari na"   # Les gens brûlent les ordures, il y a de la fumée
+  # Infrastructure
+  - "Miiru lekkool bi daanu na"   # Le mur de l'école est tombé
+  - "Passerelle bi dafa yàqu, mën a am musiba"   # La passerelle est abîmée, c'est dangereux
+  # Lieu et gravité
+  - "Mu ngi janoo ak marse bi, ci wetu arrêt bi"   # C'est en face du marché, à côté de l'arrêt de bus
+  - "Mu ngi ci ginnaaw jumaa ju sama gox"   # C'est derrière la mosquée de mon quartier
+  - "Dafa yàkkamti, te kenn ñëwul"   # C'est urgent, personne n'est venu
