@@ -13,7 +13,7 @@ from app import alerts, routing, transmission
 from app.knowledge import Knowledge
 from app.messages import msg
 from app.storage import TRANSITIONS, Storage, StorageError
-from app.understanding import extract_llm, extract_rules
+from app.understanding import extract_llm, extract_rules, speaks
 from app.zones import Gazetteer
 from config import settings
 
@@ -120,7 +120,15 @@ class Assistant:
         if audio and not heard:
             return Turn("not_heard", msg("not_heard", fallback_lang), fallback_lang, draft)
 
+        # La langue de la conversation ne change que si le citoyen parle vraiment une autre langue :
+        # une réponse qui n'est qu'un lieu (« Parcelles Assainies unité 21 ») garde la langue d'avant.
+        previous = draft.get("language") if draft["transcript"] else None
         language = lang or extraction["language"]
+        if not lang and previous in settings.LANGS and language != previous \
+                and not speaks(heard, language, self.gazetteer):
+            language = previous
+        if language != extraction["language"]:
+            extraction["description_user"] = None   # rédigée dans la mauvaise langue : on garde l'ancienne
         draft["language"] = language
         if audio:
             draft["source"] = "voice"

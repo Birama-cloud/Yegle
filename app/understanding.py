@@ -51,7 +51,8 @@ Détail des clés :
 - language : langue du DERNIER message uniquement.
 - is_report : true si le message décrit un problème à signaler, ou complète le brouillon. false sinon.
 - description_fr : le problème en une phrase courte et neutre, en français, sans le lieu.
-- description_user : la même phrase dans la langue du citoyen.
+- description_user : la même phrase dans la langue de la conversation. Si le dernier message n'est
+  qu'un lieu ou quelques mots sans langue nette, garde la langue du BROUILLON.
 - location_text : le lieu tel que le citoyen l'a dit (quartier, commune, repère). null s'il n'en a pas parlé.
 - confidence_problem : ta confiance dans la compréhension du problème.
 """
@@ -87,6 +88,9 @@ URGENT_WORDS = ["danger", "dangereux", "cable tombe", "cable par terre", "etince
                 "blesse", "enfant", "inondation", "inonde", "inondee"]
 WOLOF_MARKERS = re.compile(r"[ñëŋ]|\b(dafa|amul|nekk|ndox|yoon|mbalit|sama|bi|ci|fan|yàqu|ngir)\b", re.IGNORECASE)
 ENGLISH_MARKERS = re.compile(r"\b(the|there|is|street|water|broken|near|road|light|my)\b", re.IGNORECASE)
+FRENCH_MARKERS = re.compile(r"\b(il|elle|je|nous|on|le|la|les|un|une|des|du|de|est|sont|dans|pas|y a|depuis|notre|mon|ma)\b",
+                            re.IGNORECASE)
+LANGUAGE_MARKERS = {"wo": WOLOF_MARKERS, "fr": FRENCH_MARKERS, "en": ENGLISH_MARKERS}
 LEADING_PREPOSITION = re.compile(r"^(?:à la|à l'|à|au|aux|vers|c'est à|c'est au|c'est)\s+", re.IGNORECASE)
 
 
@@ -208,6 +212,20 @@ def extract_llm(llm, knowledge: Knowledge, text: str | None = None, audio: bytes
     if not audio:
         result["transcription"] = (text or "").strip()
     return result
+
+
+def speaks(text: str, lang: str, gazetteer: Gazetteer | None = None) -> bool:
+    """Vrai si le message contient des mots propres à cette langue, noms de lieux mis à part.
+
+    Sert à ne pas changer la langue de la conversation sur une simple réponse de lieu
+    (« Parcelles Assainies unité 21 ») : un nom de lieu ne dit rien de la langue parlée.
+    """
+    text = text or ""
+    if gazetteer is not None:
+        for z in gazetteer.zones:
+            text = re.sub(re.escape(z.name), " ", text, flags=re.IGNORECASE)
+    pattern = LANGUAGE_MARKERS.get(lang)
+    return bool(pattern and pattern.search(text))
 
 
 def guess_language(text: str) -> str:

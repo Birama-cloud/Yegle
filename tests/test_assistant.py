@@ -216,3 +216,40 @@ def test_validation_stricte_de_la_sortie_du_modele(knowledge):
     assert out["category"] == "autre" and out["subcategory"] is None and out["urgency"] == "medium"
     assert out["language"] == "fr" and out["confidence_problem"] == 1.0 and len(out["description"]) == 300
     assert out["location_text"] is None and "latitude" not in out
+
+
+def _reponse(**kw):
+    base = {"transcription": "", "language": "fr", "is_report": True, "category": None, "subcategory": None,
+            "description_fr": None, "description_user": None, "location_text": None, "urgency": "medium",
+            "confidence_problem": 0.9}
+    return json.dumps({**base, **kw})
+
+
+def test_une_reponse_de_lieu_garde_la_langue_wolof(verified, gazetteer):
+    # Cas réel : problème dit en wolof, puis seulement le lieu ; Yëgle répondait en français.
+    llm = FakeLLM(
+        _reponse(transcription="Sali sa baye église. Ñénsu ñu koñ bi dafa tàr ndox, kayen jappale ñu.",
+                 language="wo", category="assainissement", subcategory="inondation",
+                 description_fr="Inondation du quartier", description_user="Koñ bi dafa tàr ndox",
+                 location_text="Sali sa baye église"),
+        _reponse(transcription="Parcelles Assainies unité 21", language="fr", category="assainissement",
+                 description_fr="Inondation du quartier", description_user="Inondation du quartier",
+                 location_text="Sali sa baye église, Parcelles Assainies unité 21"))
+    a = Assistant(llm=llm, knowledge=verified, gazetteer=gazetteer, storage=Storage(":memory:"))
+    t1 = a.analyze(None, text="Sali sa baye église. Ñénsu ñu koñ bi dafa tàr ndox, kayen jappale ñu.")
+    assert t1.language == "wo"
+    t2 = a.analyze(t1.draft, text="Parcelles Assainies unité 21")
+    assert t2.kind == "confirm" and t2.language == "wo"
+    assert t2.message.startswith("Sa yëgle : Koñ bi dafa tàr ndox")
+
+
+def test_le_citoyen_peut_changer_de_langue(verified, gazetteer):
+    llm = FakeLLM(
+        _reponse(transcription="Ndox mi dafa tuuru", language="wo", category="eau",
+                 description_fr="Fuite d'eau", description_user="Ndox mi dafa tuuru"),
+        _reponse(transcription="C'est dans la rue à Grand-Yoff", language="fr", category="eau",
+                 description_fr="Fuite d'eau", description_user="Fuite d'eau", location_text="Grand-Yoff"))
+    a = Assistant(llm=llm, knowledge=verified, gazetteer=gazetteer, storage=Storage(":memory:"))
+    t1 = a.analyze(None, text="Ndox mi dafa tuuru")
+    t2 = a.analyze(t1.draft, text="C'est dans la rue à Grand-Yoff")
+    assert t2.language == "fr" and "Votre signalement : Fuite d'eau" in t2.message
