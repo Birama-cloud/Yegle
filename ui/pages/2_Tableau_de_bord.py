@@ -123,9 +123,8 @@ for alert in storage.list_alerts():
 
 unverified = [o.display_name for o in assistant.knowledge.organizations if o.active and not o.verified]
 if unverified and settings.ROUTING_REQUIRE_VERIFIED:
-    st.markdown("<p class='yg-note-light'>Fiches organismes à vérifier : " + esc(", ".join(unverified))
-                + ". Sans date de vérification dans data/organismes.yaml, leurs signalements arrivent ici en "
-                "vérification au lieu d'être orientés automatiquement.</p>", unsafe_allow_html=True)
+    st.markdown("<p class='yg-note-light'>Vérification humaine systématique pour : " + esc(", ".join(unverified))
+                + ". Leurs signalements arrivent ici avant toute transmission.</p>", unsafe_allow_html=True)
 for error in assistant.knowledge.validate():
     st.error(f"Base de connaissances : {error}")
 

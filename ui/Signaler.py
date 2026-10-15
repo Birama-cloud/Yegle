@@ -10,7 +10,7 @@ import streamlit as st  # noqa: E402
 from app import voice  # noqa: E402
 from app.messages import msg  # noqa: E402
 from ui.common import (PAGE_TRACK, URGENCY_LABELS, analyze_limiter, category_label, client_ip,  # noqa: E402
-                       esc, get_assistant, icon, setup, steps)
+                       compact_mic, esc, follow_last_message, get_assistant, icon, setup, steps)
 
 state = st.session_state
 for key, default in {"messages": [], "draft": None, "stage": "talk", "decision": None, "report": None,
@@ -21,6 +21,7 @@ setup("Signaler", theme="dark", width="1180px" if not state.messages else "800px
 assistant = get_assistant()
 
 LANG_OPTIONS = {"Auto": None, "Français": "fr", "Wolof": "wo", "English": "en"}
+LANG_NAMES = {"wo": "En wolof", "en": "In English", "fr": "En français"}
 # Préférences gardées hors des widgets : Streamlit oublie un widget dès qu'il n'est plus affiché.
 state.setdefault("pref_lang", "Auto")
 state.setdefault("pref_voice", True)
@@ -110,8 +111,13 @@ else:
         f"{esc(m['content'])}</div>" for m in state.messages)
     st.markdown(f"<div class='yg-chat'>{bubbles}</div>", unsafe_allow_html=True)
     if state.speak:
-        st.audio(state.speak["audio"], format=state.speak["mime"], autoplay=not state.speak["played"])
+        with st.container(key="yg_speaker"):
+            st.markdown(f"<div class='yg-voice-label'>{icon('speaker')}Yëgle vous répond à voix haute</div>",
+                        unsafe_allow_html=True)
+            st.audio(state.speak["audio"], format=state.speak["mime"], autoplay=not state.speak["played"])
         state.speak["played"] = True     # lecture automatique une seule fois
+    follow_last_message(len(state.messages))
+    compact_mic()
 
 # ---------------------------------------------------------------- étape en cours
 if state.stage == "confirm":
@@ -119,10 +125,19 @@ if state.stage == "confirm":
     ready = decision.get("status") == "ready_for_transmission"
     org = (decision.get("organization") or {}).get("org_name") if ready else "À déterminer par notre équipe"
     place = d.get("location_text") or d.get("territorial_area") or "Non précisé"
+    # La fiche est en français, avec la phrase du citoyen en rappel quand il a parlé une autre langue.
+    said, category = "", category_label(assistant, d["category"])
+    if state.lang != "fr":
+        user_words = (d.get("description_user") or "").strip()
+        if user_words and user_words != d["description"]:
+            said = f"<small class='yg-said'>{LANG_NAMES.get(state.lang, '')} : « {esc(user_words)} »</small>"
+        local = category_label(assistant, d["category"], state.lang)
+        if local and local != category:
+            category += f" · {local}"
     st.markdown(
         "<section class='yg-ticket'><header>Vérifiez votre signalement</header><dl>"
-        f"<dt>Problème</dt><dd>{esc(d.get('description_user') or d['description'])}</dd>"
-        f"<dt>Catégorie</dt><dd>{esc(category_label(assistant, d['category'], state.lang))}</dd>"
+        f"<dt>Problème</dt><dd>{esc(d['description'])}{said}</dd>"
+        f"<dt>Catégorie</dt><dd>{esc(category)}</dd>"
         f"<dt>Lieu</dt><dd>{esc(place)}</dd>"
         f"<dt>Urgence</dt><dd>{esc(URGENCY_LABELS.get(d['urgency'], d['urgency']))}</dd></dl>"
         f"<div class='dest'><i class='yg-dot{'' if ready else ' warn'}'></i><div>"

@@ -147,3 +147,14 @@ def test_ancienne_base_migree_sans_perte(tmp_path):
 def test_journal_wal_sur_fichier(tmp_path):
     storage = Storage(tmp_path / "base.sqlite")
     assert storage._query("PRAGMA journal_mode")[0]["journal_mode"] == "wal"
+
+
+def test_reference_parlante(tmp_path):
+    """La référence dit le type de problème et le jour : YGL-EAU-1510-K7P2."""
+    import re
+    storage = Storage(tmp_path / "base.sqlite")
+    ref = storage.create_report(DRAFT, DECISION)["reference"]
+    assert re.fullmatch(r"YGL-EAU-\d{4}-[A-Z2-9]{4}", ref)
+    autre = storage.create_report({**DRAFT, "category": "autre"}, DECISION)["reference"]
+    assert autre.startswith("YGL-AUTRE-")
+    assert storage.public_view(ref)["reference"] == ref

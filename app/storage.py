@@ -30,6 +30,9 @@ TRANSITIONS = {
     "REJECTED": set(),
 }
 ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"   # sans caractères ambigus (0/O, 1/I/L)
+# Codes des références, par catégorie (data/categories.yaml). Une catégorie inconnue donne AUTRE.
+REF_CODES = {"eau": "EAU", "assainissement": "ASS", "electricite": "ELEC", "eclairage_public": "ECL",
+             "voirie": "VOIR", "proprete": "PROP", "infrastructure": "INFRA", "autre": "AUTRE"}
 PURGED = "[Message du citoyen effacé après la durée de conservation]"
 
 SCHEMA = """
@@ -133,17 +136,21 @@ class Storage:
             return [dict(r) for r in self.db.execute(sql, params).fetchall()]
 
     # ------------------------------------------------------------------ création
-    def _new_reference(self) -> str:
-        day = datetime.now(timezone.utc).strftime("%y%m%d")
+    def _new_reference(self, category: str | None = None) -> str:
+        """Référence parlante : YGL-EAU-1015-K7P2 (préfixe, type de problème, jour et mois, 4 caractères).
+
+        Le code dit d'un coup d'œil de quel problème il s'agit, au téléphone comme sur papier."""
+        code = REF_CODES.get(category or "", "AUTRE")
+        day = datetime.now(timezone.utc).strftime("%d%m")
         while True:
-            ref = f"{settings.REF_PREFIX}-{day}-" + "".join(secrets.choice(ALPHABET) for _ in range(6))
+            ref = f"{settings.REF_PREFIX}-{code}-{day}-" + "".join(secrets.choice(ALPHABET) for _ in range(4))
             if not self._query("SELECT 1 FROM reports WHERE reference = ?", (ref,)):
                 return ref
 
     def create_report(self, draft: dict, decision) -> dict:
         org = decision.organization
         with self._write():
-            t, ref = now(), self._new_reference()     # référence tirée dans la transaction : unique
+            t, ref = now(), self._new_reference(draft.get("category"))     # référence tirée dans la transaction : unique
             cur = self.db.execute(
                 """INSERT INTO reports (reference, created_at, updated_at, status, category, subcategory,
                    description, transcript, location_text, zone_id, territorial_area, latitude, longitude,

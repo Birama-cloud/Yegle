@@ -8,6 +8,7 @@ import html
 from urllib.parse import quote
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from app.assistant import Assistant
 from app.ratelimit import RateLimiter
@@ -45,6 +46,7 @@ ICONS = {
     "proprete": "M3 6h18 M8 6V4h8v2 M6 6l1 15h10l1-15 M10 10v7 M14 10v7",
     "infrastructure": "M4 21V5l8-3v19 M12 9h8v12 M2 21h20",
     "autre": "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z M12 8v5 M12 16v.01",
+    "speaker": "M11 5 6 9H3v6h3l5 4z M15.5 8.5a5 5 0 0 1 0 7 M18.5 5.5a9 9 0 0 1 0 13",
 }
 
 
@@ -285,6 +287,23 @@ DARK_CSS = """
 .yg-msg.bot{align-self:flex-start; background:var(--glass); border:1px solid var(--glass-line); color:var(--text);
   border-bottom-left-radius:6px;}
 .yg-msg small{display:block; font-size:.78rem; font-weight:600; opacity:.8; margin-bottom:.15rem;}
+/* la voix de Yëgle : une pastille discrète sous le dernier message, au lieu du grand lecteur gris */
+.st-key-yg_speaker{margin:-.4rem auto .8rem 0; display:flex; flex-direction:row !important; align-items:center;
+  gap:.7rem !important; padding:.35rem .5rem .35rem 1rem; border-radius:999px; background:rgba(11,16,48,.75);
+  border:1px solid var(--glass-line); width:fit-content !important; max-width:min(520px, 100%);}
+.st-key-yg_speaker > div{width:auto !important;}
+.st-key-yg_speaker [data-testid="stAudio"]{width:240px !important; height:36px;}
+.st-key-yg_speaker audio{height:36px; width:240px; border-radius:999px; color-scheme:dark;}
+.st-key-yg_speaker audio::-webkit-media-controls-panel{background:#1A2150;}
+.yg-voice-label{display:flex; align-items:center; gap:.45rem; color:#19E3D0; font-size:.92rem; font-weight:600; white-space:nowrap;}
+.yg-voice-label .yg-ico{width:1.15rem; height:1.15rem;}
+[data-testid="stElementContainer"]:has(iframe[height="0"]){position:absolute; height:0; overflow:hidden; margin:0;}
+.yg-said{display:block; margin-top:.35rem; color:var(--muted); font-size:.88rem; font-style:italic;}
+.yg-codes{display:flex; flex-wrap:wrap; gap:.4rem .9rem; padding:1rem 1.3rem; border-top:1px solid var(--glass-line);
+  color:var(--muted); font-size:.92rem;}
+.yg-codes p b{color:var(--text);}
+.yg-codes span b{color:var(--text); font-family:ui-monospace,monospace; margin-right:.3rem;}
+.yg-codes p{flex:1 1 100%; margin:0 0 .2rem;}
 .yg-ticket{background:var(--glass); border:1px solid var(--glass-line); border-radius:20px; margin:.4rem auto 1rem;
   max-width:760px; overflow:hidden; color:var(--text); backdrop-filter:blur(14px);}
 .yg-ticket header{padding:1rem 1.3rem; font-weight:600; font-size:1.15rem; border-bottom:1px solid var(--glass-line);}
@@ -534,6 +553,37 @@ def steps(current: int, labels=("Décrire", "Vérifier", "Envoyé")) -> None:
     items = "".join(f"<li class='{'done' if i < current else 'now' if i == current else ''}'>{i + 1}. {esc(label)}</li>"
                     for i, label in enumerate(labels))
     st.markdown(f"<ol class='yg-steps'>{items}</ol>", unsafe_allow_html=True)
+
+
+COMPACT_MIC_CSS = """
+[data-testid="stAudioInput"]{margin:.4rem 0 .2rem;}
+[data-testid="stAudioInput"]::before{height:220px; width:min(320px, 100vw);}
+[data-testid="stAudioInput"] span:has(> [data-testid="stAudioInputActionButton"]){width:128px; height:128px;}
+[data-testid="stAudioInput"] span:has(> [data-testid="stAudioInputActionButton"])::before,
+[data-testid="stAudioInput"] span:has(> [data-testid="stAudioInputActionButton"])::after{width:110px; height:66px;}
+[data-testid="stAudioInputActionButton"]{width:108px !important; height:108px !important; min-width:108px !important;
+  min-height:108px; flex:0 0 108px !important; border-width:4px !important;
+  box-shadow:0 0 0 9px rgba(88,101,255,.10), 0 0 40px rgba(88,101,255,.5);}
+[data-testid="stAudioInputActionButton"] svg{width:44px !important; height:44px !important;}
+[data-testid="stAudioInput"] > label{margin-top:.5rem;}
+[data-testid="stAudioInput"] > label p{font-size:1rem;}
+"""
+
+
+def compact_mic() -> None:
+    """Pendant la conversation, le micro rétrécit : l'échange reste visible au-dessus."""
+    st.markdown(f"<style>{COMPACT_MIC_CSS}</style>", unsafe_allow_html=True)
+
+
+def follow_last_message(count: int) -> None:
+    """Fait défiler la page jusqu'au dernier message de Yëgle, seulement quand un nouveau message arrive."""
+    if st.session_state.get("_yg_followed") == count:
+        return
+    st.session_state["_yg_followed"] = count
+    components.html(
+        "<script>setTimeout(function(){var d=window.parent.document;"
+        "var m=d.querySelectorAll('.yg-msg.bot');if(m.length){m[m.length-1].scrollIntoView("
+        "{behavior:'smooth',block:'start'});}},250);</script><!-- " + str(count) + " -->", height=0)
 
 
 def badge(status: str) -> str:

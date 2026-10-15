@@ -22,10 +22,22 @@ STAGES = [
 st.markdown("<h1 class='yg-page-title'>Suivre un signalement</h1>"
             "<p class='yg-page-sub'>Saisissez la référence reçue à la fin de votre signalement.</p>",
             unsafe_allow_html=True)
-reference = st.text_input("Votre référence", placeholder="YGL-261008-ABC234",
+reference = st.text_input("Votre référence", placeholder="Exemple : YGL-EAU-1510-K7P2",
                           help="Elle vous a été donnée à la fin de votre signalement.").strip().upper()
 
-if reference:
+if not reference:
+    # Avant la saisie : ce qui attend le citoyen et comment lire sa référence.
+    track = "".join(f"<li>{esc(title)}<br><span>{esc(detail)}</span></li>" for title, detail, _ in STAGES)
+    codes = "".join(f"<span><b>{code}</b>{esc(label)}</span>" for code, label in (
+        ("EAU", "Eau"), ("ASS", "Assainissement"), ("ELEC", "Électricité"), ("ECL", "Éclairage public"),
+        ("VOIR", "Voirie"), ("PROP", "Propreté"), ("INFRA", "Bâtiments publics"), ("AUTRE", "Autre")))
+    st.markdown(
+        "<section class='yg-ticket'><header>Les étapes de votre signalement</header>"
+        f"<ol class='yg-track'>{track}</ol>"
+        "<div class='yg-codes'><p>Lire une référence : YGL-<b>EAU</b>-1510-K7P2 = un problème d'eau signalé "
+        f"le 15/10. Le code du milieu indique le type de problème :</p>{codes}</div></section>",
+        unsafe_allow_html=True)
+else:
     view = assistant.storage.public_view(reference)
     if not view:
         st.error("Aucun signalement ne porte cette référence. Vérifiez les lettres et les chiffres, tirets compris.")
