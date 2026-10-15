@@ -33,7 +33,7 @@ Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen
 3. Le lieu est rapproché d'un répertoire de communes. S'il manque, l'assistant pose une seule question.
 4. Le moteur d'orientation croise la catégorie et la zone avec la base des organismes, et calcule une confiance.
 5. Le citoyen entend un résumé et confirme.
-6. Le signalement est enregistré et placé dans la file de l'organisme. Le citoyen reçoit une référence de suivi.
+6. Le signalement est enregistré et placé dans la file de l'organisme. Le citoyen reçoit une référence de suivi qui indique le type de problème et le jour, par exemple `YGL-EAU-1510-K7P2` (eau, 15 octobre).
 
 **En cas de doute, rien n'est envoyé au hasard.** Si la confiance est insuffisante, le signalement passe par une vérification humaine plutôt que d'arriver au mauvais service.
 
@@ -168,7 +168,9 @@ Dépendances principales : Streamlit, FastAPI, google-genai, PyYAML, httpx, gTTS
 ## Équipe
 
 - Birama TOGOLA
-- *à compléter*
+- Soukeye THIAM
+- Chérif BAKHOUM
+- Ibrahima Khalil LY
 
 ## Licence
 
