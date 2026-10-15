@@ -2,7 +2,7 @@
 # Les pages citoyen passent en sombre par le CSS de ui/common.py.
 [theme]
 base = "light"
-primaryColor = "#1E5BD8"
+primaryColor = "#5865FF"
 backgroundColor = "#F4F7FC"
 secondaryBackgroundColor = "#EEF3FB"
 textColor = "#0B1F4B"
