@@ -22,8 +22,19 @@ STAGES = [
 st.markdown("<h1 class='yg-page-title'>Suivre un signalement</h1>"
             "<p class='yg-page-sub'>Saisissez la référence reçue à la fin de votre signalement.</p>",
             unsafe_allow_html=True)
-reference = st.text_input("Votre référence", placeholder="Exemple : YGL-EAU-1510-K7P2",
-                          help="Elle vous a été donnée à la fin de votre signalement.").strip().upper()
+# Arrivée depuis « Suivre ce signalement » : la référence qui vient d'être donnée est déjà remplie.
+last = (st.session_state.get("report") or {}).get("reference")
+if last and last != st.session_state.get("yg_prefilled"):
+    st.session_state.yg_ref = st.session_state.yg_prefilled = last
+
+# Un formulaire : la recherche part avec le bouton ou avec la touche Entrée.
+with st.form("yg_search", border=False):
+    field, go = st.columns([4, 1], vertical_alignment="bottom")
+    typed = field.text_input("Votre référence", value=st.session_state.get("yg_ref", ""), placeholder="Exemple : YGL-EAU-1510-K7P2",
+                             help="Elle vous a été donnée à la fin de votre signalement.")
+    if go.form_submit_button("Rechercher", type="primary", icon=":material/search:", width="stretch"):
+        st.session_state.yg_ref = typed
+reference = (st.session_state.get("yg_ref") or "").strip().upper()
 
 if not reference:
     # Avant la saisie : ce qui attend le citoyen et comment lire sa référence.

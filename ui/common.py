@@ -334,9 +334,9 @@ DARK_CSS = """
 .yg-track li span{font-weight:400; color:var(--muted); font-size:.95rem;}
 
 /* composants natifs sur fond sombre */
-.stApp button[kind="primary"]{background:linear-gradient(90deg,#19E3D0,#4F8BFF) !important; border:none !important;
+.stApp button[kind="primary"], .stApp button[kind="primaryFormSubmit"]{background:linear-gradient(90deg,#19E3D0,#4F8BFF) !important; border:none !important;
   color:#06122B !important; border-radius:14px; font-weight:700; min-height:3.1rem;}
-.stApp button[kind="primary"] p{color:#06122B !important; font-weight:700; font-size:1.05rem;}
+.stApp button[kind="primary"] p, .stApp button[kind="primaryFormSubmit"] p{color:#06122B !important; font-weight:700; font-size:1.05rem;}
 .stApp button[kind="secondary"]{background:transparent !important; border:1px solid rgba(255,255,255,.24) !important;
   color:var(--text) !important; border-radius:14px; min-height:3.1rem;}
 .stApp button[kind="secondary"] p{color:var(--text) !important;}
