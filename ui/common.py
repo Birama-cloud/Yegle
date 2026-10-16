@@ -5,6 +5,7 @@ pour l'espace services. Le thème de .streamlit/config.toml est clair ; les page
 en sombre par le CSS de DARK_CSS. Logo, police (Outfit) et bleu sont communs aux deux.
 """
 import html
+from pathlib import Path
 from urllib.parse import quote
 
 import streamlit as st
@@ -507,6 +508,10 @@ def esc(value) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
+# Icône de l'onglet du navigateur : le logo de Yëgle (micro blanc sur le dégradé).
+FAVICON = Path(__file__).with_name("favicon.png")
+
+
 def logo_html() -> str:
     return f"<p class='yg-logo'><i>{icon('mic')}</i>{esc(settings.APP_NAME)}</p>"
 
@@ -518,7 +523,7 @@ def setup(title: str, theme: str = "dark", width: str = "760px", active: str = P
     de droite de la barre reçoit le nom de l'administrateur. En style sombre, la droite
     contient le lien vers l'espace services.
     """
-    st.set_page_config(page_title=f"{title} | {settings.APP_NAME}", page_icon="📣", layout="wide",
+    st.set_page_config(page_title=f"{title} | {settings.APP_NAME}", page_icon=str(FAVICON), layout="wide",
                        initial_sidebar_state="collapsed")
     # Streamlit ne marque pas le lien de la page courante de façon stable : on le repère par son adresse.
     href = {PAGE_HOME: "", PAGE_TRACK: "Suivre_mon_signalement", PAGE_ADMIN: "Tableau_de_bord"}[active]
