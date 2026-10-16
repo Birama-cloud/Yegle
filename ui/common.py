@@ -577,15 +577,16 @@ def compact_mic() -> None:
     st.markdown(f"<style>{COMPACT_MIC_CSS}</style>", unsafe_allow_html=True)
 
 
-def follow_last_message(count: int) -> None:
-    """Fait défiler la page jusqu'au dernier message de Yëgle, seulement quand un nouveau message arrive."""
+def follow_last_message(count: int, target: str = ".yg-msg.bot") -> None:
+    """Fait défiler la page jusqu'au dernier élément `target` (par défaut le dernier message de Yëgle),
+    seulement quand un nouveau message arrive."""
     if st.session_state.get("_yg_followed") == count:
         return
     st.session_state["_yg_followed"] = count
     components.html(
         "<script>setTimeout(function(){var d=window.parent.document;"
-        "var m=d.querySelectorAll('.yg-msg.bot');if(m.length){m[m.length-1].scrollIntoView("
-        "{behavior:'smooth',block:'start'});}},250);</script><!-- " + str(count) + " -->", height=0)
+        f"var m=d.querySelectorAll('{target}');if(m.length){{m[m.length-1].scrollIntoView("
+        "{behavior:'smooth',block:'start'});}},350);</script><!-- " + str(count) + " -->", height=0)
 
 
 def badge(status: str) -> str:

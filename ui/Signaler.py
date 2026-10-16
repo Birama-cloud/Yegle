@@ -116,7 +116,8 @@ else:
                         unsafe_allow_html=True)
             st.audio(state.speak["audio"], format=state.speak["mime"], autoplay=not state.speak["played"])
         state.speak["played"] = True     # lecture automatique une seule fois
-    follow_last_message(len(state.messages))
+    # Une fois envoyé, on montre la référence et les boutons qui suivent plutôt que le dernier message.
+    follow_last_message(len(state.messages), ".yg-ticket" if state.stage == "done" else ".yg-msg.bot")
     compact_mic()
 
 # ---------------------------------------------------------------- étape en cours
@@ -176,8 +177,10 @@ elif state.stage == "done" and state.report:
         "<p class='yg-ref-help'>Notez-la ou faites une capture d'écran : elle permet de suivre votre signalement.</p>"
         f"<div class='dest'><i class='yg-dot{' warn' if waiting else ''}'></i><div>"
         f"<span>Service destinataire</span><b>{esc(org)}</b></div></div></section>", unsafe_allow_html=True)
-    st.page_link(PAGE_TRACK, label="Suivre ce signalement", icon=":material/search:")
-    if st.button("Faire un autre signalement", width="stretch"):
+    track, again = st.columns(2)
+    if track.button("Suivre ce signalement", type="primary", icon=":material/search:", width="stretch"):
+        st.switch_page(PAGE_TRACK)
+    if again.button("Faire un autre signalement", icon=":material/mic:", width="stretch"):
         state.messages = []
         reset()
         st.rerun()
@@ -199,7 +202,13 @@ else:
         st.segmented_control("Langue", list(LANG_OPTIONS), key="yg_lang", label_visibility="collapsed",
                              width="content")
         st.toggle("Réponses à voix haute", key="yg_voice", width="content")
+        restart = state.messages and st.button("Recommencer", icon=":material/restart_alt:", key="yg_restart",
+                                               help="Effacer cette conversation et décrire un autre problème.")
     state.pref_lang, state.pref_voice = state.yg_lang or "Auto", state.yg_voice
+    if restart:
+        state.messages = []
+        reset()
+        st.rerun()
     if typed := holder.chat_input("Ou écrivez votre message…"):
         handle(text=typed)
         st.rerun()

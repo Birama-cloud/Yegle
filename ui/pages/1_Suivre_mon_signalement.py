@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import streamlit as st  # noqa: E402
 
-from ui.common import PAGE_TRACK, badge, category_label, esc, get_assistant, setup, when  # noqa: E402
+from ui.common import PAGE_HOME, PAGE_TRACK, badge, category_label, esc, get_assistant, setup, when  # noqa: E402
 
 setup("Suivi", theme="dark", width="800px", active=PAGE_TRACK)
 assistant = get_assistant()
@@ -78,3 +78,20 @@ else:
             f"<ol class='yg-track'>{items}</ol></section>",
             unsafe_allow_html=True)
         st.caption("Les heures sont indiquées en temps universel (UTC).")
+
+
+def new_report() -> None:
+    """Repart d'une page Signaler vierge, même si un signalement vient d'être envoyé."""
+    state = st.session_state
+    state.update(messages=[], draft=None, stage="talk", decision=None, report=None, last_audio=None, speak=None)
+    state.mic_key = state.get("mic_key", 0) + 1
+    st.switch_page(PAGE_HOME)
+
+
+# Sous la fiche : relire l'avancement, ou signaler un autre problème.
+left, right = st.columns(2) if reference else (None, st)
+if left and left.button("Actualiser", icon=":material/refresh:", width="stretch",
+                        help="Relire l'avancement : le service a peut-être changé le statut."):
+    st.rerun()
+if right.button("Faire un nouveau signalement", icon=":material/mic:", width="stretch"):
+    new_report()
