@@ -8,7 +8,7 @@ Yëgle (« faire savoir » en wolof) est un assistant vocal open source de signa
 
 Projet réalisé pour le **Open Source × AI Hackathon 2026** de Galsen DEV, track *Civic Tech & services publics*.
 
-**Vidéo de démonstration (3 min) :** [LIEN_DE_LA_VIDEO](LIEN_DE_LA_VIDEO)
+**Vidéo de démonstration (3 min) :** https://drive.google.com/file/d/13KF0cTZKKByplP0DySe-xgjKPZytt33D/view?usp=sharing
 
 ## Aperçu
 
