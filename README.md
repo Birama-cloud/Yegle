@@ -26,7 +26,9 @@ Le citoyen parle, vérifie le résumé, puis envoie. Les services retrouvent le 
 
 ## Le problème
 
-Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen voit le problème, mais ne sait pas à qui s'adresser. Mairie, ONAS, SENELEC, SEN'EAU ? La plupart des plateformes de signalement lui demandent de remplir un formulaire, de choisir une catégorie et de placer un point sur une carte. Cela écarte ceux qui lisent peu ou qui s'expriment d'abord en wolof.
+Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen voit le problème, mais ne sait pas à qui s'adresser. Mairie, ONAS, SENELEC, SEN'EAU ? La plupart des plateformes de signalement lui demandent de remplir un formulaire, de choisir une catégorie et de placer un point sur une carte, presque toujours en français. Cela écarte ceux qui ne savent pas lire, ou qui s'expriment d'abord en wolof. Or, au Sénégal, près de 4 personnes sur 10 âgées de 10 ans et plus ne savent ni lire ni écrire ([ANSD, recensement de 2023](https://www.vie-publique.sn/documents/10516/alphabetisation-scolarisation-et-formation-professionnelle-senegal-rgph-5-2023-ansd) : 62,2 % d'alphabétisation).
+
+**Yëgle est pensé d'abord pour eux : il n'y a rien à lire ni à écrire.**
 
 ## La solution
 
@@ -34,8 +36,8 @@ Une fuite d'eau, un lampadaire en panne, des égouts qui débordent : le citoyen
 2. L'IA transcrit et extrait le problème, sa catégorie, le lieu et l'urgence.
 3. Le lieu est rapproché d'un répertoire de communes. S'il manque, l'assistant pose une seule question.
 4. Le moteur d'orientation croise la catégorie et la zone avec la base des organismes, et calcule une confiance.
-5. Le citoyen entend un résumé et confirme.
-6. Le signalement est enregistré et placé dans la file de l'organisme. Le citoyen reçoit une référence de suivi qui indique le type de problème et le jour, par exemple `YGL-EAU-1510-K7P2` (eau, 15 octobre).
+5. Le citoyen entend un résumé et confirme à la voix (« waaw » / « oui »), ou d'un clic.
+6. Le signalement est enregistré et placé dans la file de l'organisme. Yëgle annonce à voix haute une référence de suivi qui indique le type de problème et le jour, par exemple `YGL-EAU-1510-K7P2` (eau, 15 octobre).
 
 **En cas de doute, rien n'est envoyé au hasard.** Si la confiance est insuffisante, le signalement passe par une vérification humaine plutôt que d'arriver au mauvais service.
 
@@ -160,6 +162,7 @@ docs/                     architecture, maquettes, captures
 - Position GPS acceptée par l'API mais pas encore proposée dans l'interface.
 - Un seul mot de passe pour le tableau de bord, sans compte par organisme.
 - Transmission : file interne et webhook. L'e-mail n'est pas réalisé.
+- Le suivi d'un signalement demande encore de saisir sa référence : un suivi entièrement vocal est la prochaine étape.
 - Aucun organisme n'est partenaire à ce jour : c'est un prototype prêt à leur être proposé.
 
 ## Origine et dépendances
