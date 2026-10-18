@@ -8,6 +8,8 @@ Yëgle (« faire savoir » en wolof) est un assistant vocal open source de signa
 
 Projet réalisé pour le **Open Source × AI Hackathon 2026** de Galsen DEV, track *Civic Tech & services publics*.
 
+**Vidéo de démonstration (3 min) :** [LIEN_DE_LA_VIDEO](LIEN_DE_LA_VIDEO)
+
 ## Aperçu
 
 <table>
@@ -47,12 +49,13 @@ L'IA ne choisit **jamais** l'organisme. Cette décision revient à un moteur de 
 
 | Rôle | Modèle ou outil | Type |
 |---|---|---|
-| Transcription du vocal | Gemini, modèle réglé par `GEMINI_ASR_MODEL` (à défaut `GEMINI_MODEL`) | API |
-| Compréhension : langue, catégorie, lieu, urgence | Gemini, modèle réglé par `GEMINI_MODEL` | API |
-| Voix de l'assistant en wolof | Gemini TTS, modèle réglé par `GEMINI_TTS_MODEL` | API |
+| Transcription du vocal | Gemini : `gemini-3.8-flash` par défaut (réglable par `GEMINI_ASR_MODEL`) | API |
+| Compréhension : langue, catégorie, lieu, urgence | Gemini : `gemini-3.8-flash`, secours `gemini-3.5-flash-lite` (réglables par `GEMINI_MODEL` et `GEMINI_FALLBACK_MODEL`) | API |
+| Voix de l'assistant en wolof | Gemini TTS : `gemini-3.8-flash-tts` (réglable par `GEMINI_TTS_MODEL`) | API |
 | Voix de l'assistant en français et en anglais | gTTS | bibliothèque open source appelant un service en ligne |
-| Secours si Gemini est saturé (facultatif) | OpenAI, `OPENAI_MODEL` et Whisper | API |
+| Secours si Gemini est saturé (facultatif) | OpenAI : `gpt-4o-mini` et `whisper-1` (réglables par `OPENAI_MODEL` et `OPENAI_TRANSCRIBE_MODEL`) | API |
 | Aide au développement | Claude et Claude Code (Anthropic) | assistant de programmation : une grande partie du code et des tests a été écrite avec lui, puis relue |
+| Voix off de la vidéo de démonstration | ElevenLabs | service en ligne, utilisé seulement pour la vidéo, pas dans l'application |
 
 Sans clé d'API, l'application fonctionne en **mode hors ligne** : compréhension par mots-clés, par écrit uniquement. Ce mode sert de secours et permet de tester tout le parcours.
 
